@@ -125,26 +125,7 @@
 			return graph;
 		}
 		
-		function position_graph(graph) {
-			/*
-			//note: Stage fornisce un layout force directed
-			var force = Stage.layout.force()
-			  .gravity(0.01)
-			  .friction(0.7)
-			  .distance(100)
-			  .charge(-120)
-			  .linkDistance(300)
-			  .nodes(graph.nodes)
-			  .links(graph.edges)
-			  .size([graph_width, graph_height]);
-			
-			force.start();
-			while (force.alpha() > 0.001) {
-				force.tick();
-			}
-			force.stop();
-			*/
-			
+		function position_graph(graph) {			
 			var g = new dagre.graphlib.Graph();
 			
 			var grafo = {			// attributi che influiscono sull'estetica del grafico
