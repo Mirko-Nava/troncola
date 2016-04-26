@@ -2,17 +2,19 @@
 
 // Variabili Private
 
-	var graph_width = undefined;	//
-	var graph_height = undefined;	//
-	var width_delta = 17;			//
+	var graph_width = undefined;		//
+	var graph_height = undefined;		//
+	var width_delta = 17;				//
 
 // Variabili Pubbliche	
 
 	var Stage = {
-		"graph_margin":	0,			// Pixel di margine ai lati
-		"size_factor":	0.33,		// Fattore di scala per i nodi
-		"stroke_width":	2,			// Spessore linee
-		"font_size":	14			// Dimensione font in px
+		"graph_margin":		0,			// Pixel di margine ai lati
+		"scale_factor":		0.33,		// Fattore di scala per i nodi
+		"stroke_width":		2,			// Spessore linee
+		"font_size":		14,			// Dimensione font in px
+		"label_font_name":	"arial",	// Font dei label dei nodi
+		"desc_font_name":	"courier"	// Font delle descrizioni dei nodi
 	};
 	
 // Funzioni
@@ -36,8 +38,8 @@
 			  
 			d3.select(this).select(".node").transition()
 			  .attr({
-				"rx": d.width * Stage.size_factor * 2,
-				"ry": d.width * Stage.size_factor * 2
+				"rx": d.width * Stage.scale_factor * 2,
+				"ry": d.width * Stage.scale_factor * 2
 			  });
 		}
 
@@ -60,8 +62,8 @@
 			  
 			d3.select(this).select(".node").transition()
 			  .attr({
-				"rx": d.width * Stage.size_factor,
-				"ry": d.width * Stage.size_factor
+				"rx": d.width * Stage.scale_factor,
+				"ry": d.width * Stage.scale_factor
 			  });
 		}
 
@@ -198,7 +200,7 @@
 				  .attr({
 					"id": "arrow-" + color.substring(1),
 					"viewBox": "0 -7 10 14",
-					"refX": 10 + max_size * Stage.size_factor,
+					"refX": 10 + max_size * Stage.scale_factor,
 					"refY": 0,
 					"markerWidth": 5,
 					"markerHeight": 7,
@@ -317,8 +319,8 @@
 			  .attr({
 				"class": "node",
 				//note: le frecce sono in posizione giusta sse width == height quindi faccio max
-				"rx": function(d) { return Math.max(d.height, d.width) /*d.width*/ * Stage.size_factor; },
-				"ry": function(d) { return Math.max(d.height, d.width) /*d.height*/ * Stage.size_factor; },
+				"rx": function(d) { return Math.max(d.height, d.width) /*d.width*/ * Stage.scale_factor; },
+				"ry": function(d) { return Math.max(d.height, d.width) /*d.height*/ * Stage.scale_factor; },
 				"cx": "0",
 				"cy": "0"
 			  })
@@ -339,7 +341,8 @@
 			  .style({
 				"fill": function(d) { return d.fontcolor; },
 				"text-anchor": "middle",
-				"font-size": Stage.font_size + "px"
+				"font-size": Stage.font_size + "px",
+				"font-family": Stage.label_font_name
 			  });
 			
 			var descs = node_groups
@@ -354,6 +357,7 @@
 				"fill": "#000000",
 				"text-anchor": "middle",
 				"font-size": "0px",
+				"font-family": Stage.desc_font_name,
 				"visibility": "hidden"
 			  });
 			
