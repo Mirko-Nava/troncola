@@ -20,7 +20,7 @@ Se esse non sono state definite le verranno assegnati dei valori in automatico.
 
 #### draw_graph(*filename*)
 
-Si occupa della visualizzazione del grafico attraverso l'utilizzio di [d3](www.?.com) e [dagre](www.?.com).
+Si occupa della visualizzazione del grafico attraverso l'utilizzio di [d3](www.d3js.org) e [dagre](www.?.com).
 La funzione si divide in più fasi:
 
  - Inizialmente viene letto il file chiamato *filename*, di formato gml. Se il file non viene trovato si genera un errore
@@ -28,5 +28,5 @@ La funzione si divide in più fasi:
  - Viene creato l'oggetto graph vero e proprio a cui si assegnano i rispettivi attributi
  - Si utilizza [dagre](www.?.com) per calcolare le coordinate dei vari nodi
  - Vengono creati i marker, ovvero le punte delle freccie, nei vari colori e con gli stili definiti nel gml
- - Si utilizza [d3](www.?.com) per inserire nel DOM il grafo
+ - Si utilizza [d3](www.d3js.org) per inserire nel DOM il grafo
  - Viene associato ai nodi un evento quando il mouse è "hover"
