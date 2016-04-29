@@ -7,6 +7,7 @@
   <key id="g_name" for="graph" attr.name="name" attr.type="string"/>
   <key id="g_models" for="graph" attr.name="models" attr.type="string"/>
   <key id="g_informations" for="graph" attr.name="informations" attr.type="string"/>
+  
   <key id="v_name" for="node" attr.name="name" attr.type="string"/>
   <key id="v_label" for="node" attr.name="label" attr.type="string"/>
   <key id="v_type" for="node" attr.name="type" attr.type="string"/>
@@ -17,10 +18,12 @@
   <key id="v_width" for="node" attr.name="width" attr.type="double"/>
   <key id="v_height" for="node" attr.name="height" attr.type="double"/>
   <key id="v_borderwidth" for="node" attr.name="borderwidth" attr.type="double"/>
+  
   <key id="e_weight" for="edge" attr.name="weight" attr.type="double"/>
   <key id="e_line" for="edge" attr.name="line" attr.type="string"/>
   <key id="e_arrow" for="edge" attr.name="arrow" attr.type="string"/>
   <key id="e_color" for="edge" attr.name="color" attr.type="string"/>
+  
   <graph id="G" edgedefault="directed">
     <data key="g_name">Nome del grafo</data>
     <data key="g_models">CAPRI capri_bic - CAPRI capri_aic</data>
