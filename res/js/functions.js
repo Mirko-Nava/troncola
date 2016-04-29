@@ -6,9 +6,10 @@
 	var graph_height = undefined;		// altezza teorica del grafico
 	var width_delta = 17;				// differenza tra la larghezza teorica del grafico e quella effettiva
 
-// Variabili Pubbliche	
-
 	var Stage = {
+		
+// Variabili Pubbliche
+		
 		"graph_margin":		0,			// Pixel di margine ai lati
 		"scale_factor":		0.33,		// Fattore di scala per i nodi
 		"stroke_width":		2,			// Spessore linee
@@ -20,6 +21,8 @@
 
 		"draw_graph": function(filename) {
 			
+		// Eventi
+		
 			function node_over(d, i) {
 				
 				//alert(graph.nodes[i].height);
@@ -68,7 +71,9 @@
 					"ry": d.width * Stage.scale_factor
 				  });
 			}
-
+		
+		// Generazione grafico
+		
 			function make_graph(graph_tag, keys) {
 				var graph = {};
 				
@@ -207,6 +212,8 @@
 				return -1;
 			}
 			
+		// Codice
+			
 			d3.xml(filename, function(error, data) {
 				if (error)
 					throw error;
@@ -263,8 +270,8 @@
 				.append("svg")
 				  .attr({
 					"class": "graph",
-					"width": container_width, //container_width		graph_width
-					"height": graph_height, //container_height	graph_height
+					"width": container_width,
+					"height": graph_height,
 					"viewBox": "0 0 " + (graph_width + Stage.graph_margin) + " " + (graph_height + Stage.graph_margin)
 				  });
 				  
