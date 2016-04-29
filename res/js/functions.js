@@ -297,10 +297,20 @@
 				  })
 				  .style({
 					"stroke": function(d) { return d.color; },
-					"stroke-width": Stage.stroke_width + "px",
+					"stroke-width": function(d) { if (d.width) return d.width + "px"; else return Stage.stroke_width + "px"; },
 					"stroke-dasharray": function(d) { if (d.line === "Dash") return "5,5"; }
 				  });
-				  
+				
+				var edge_label_bgs = edge_groups
+				.append("rect")
+				  .attr({
+					"class": "edge_label_bg"
+				  })
+				  .style({
+					"fill": "#FFFFFF"//, //todo: enable
+					//"visibility": function(d) { if (d.label) return "visible"; else return "hidden"; }
+				  });
+				
 				var edge_labels = edge_groups
 				.append("text")
 				  .text(function(d) { if (d.label) return d.label; else return "Edge"; })
@@ -316,9 +326,24 @@
 				  .style({
 					"fill": function(d) { if (d.fontcolor) return d.fontcolor; else return "#000000"; },
 					"text-anchor": "middle",
-					"font-size": Stage.font_size + "px",
-					"font-family": Stage.label_font_name//,
+					"font-size": function(d) { if (d.fontsize) return d.fontsize + "px"; else return Stage.font_size + "px"; },
+					"font-family": Stage.label_font_name//, //todo: enable
 					//"visibility": function(d) { if (d.label) return "visible"; else return "hidden"; }
+				  });
+				  
+				edge_label_bgs.attr({
+				  "x": function(d, i) {
+							return edge_labels[0][i].getBBox().x - 1;
+						},
+				  "y": function(d) {
+							return (graph.nodes[d.source].y + graph.nodes[d.target].y - Stage.font_size) / 2;
+						},
+				  "width": function(d, i) { 
+							return edge_labels[0][i].getBBox().width + 1;
+						},
+				  "height":function(d, i) { 
+							return edge_labels[0][i].getBBox().height + 1;
+						}
 				  });
 				
 				var node_groups = svg.selectAll(".node_group")	// creo un gruppo che conterra tutti gli el. del nodo
