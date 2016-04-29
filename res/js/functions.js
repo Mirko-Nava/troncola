@@ -24,9 +24,6 @@
 		// Eventi
 		
 			function node_over(d, i) {
-				
-				//alert(graph.nodes[i].height);
-				
 				d3.select(this).select(".node_label").transition()
 				  .attr({
 					"y": Stage.font_size / 2 - graph.nodes[i].height / 2
@@ -71,7 +68,21 @@
 					"ry": d.width * Stage.scale_factor
 				  });
 			}
-		
+			
+			function edge_over(d, i) {
+				d3.select(this).select(".edge_label_bg").transition()
+				  .style({
+					  "fill": "#FFFF00"
+				  })
+			}
+			
+			function edge_out(d, i) {
+				d3.select(this).select(".edge_label_bg").transition()
+				  .style({
+					  "fill": "#FFFFFF"
+				  })
+			}
+			
 		// Generazione grafico
 		
 			function make_graph(graph_tag, keys) {
@@ -266,6 +277,8 @@
 				var container_width = document.body.offsetWidth - width_delta;
 				var container_height = document.body.offsetHeight;
 			
+			// SVG & defs
+			
 				var svg = d3.select("body")
 				.append("svg")
 				  .attr({
@@ -278,6 +291,8 @@
 				var defs = svg.append("defs");
 				gen_markers(defs, graph);		// genero le punte delle frecce
 				
+			// Edge	
+			
 				var edge_groups = svg.selectAll(".edge_group")	// creo un gruppo che conterra tutti gli el. dell' edge
 				  .data(graph.edges)
 				.enter().append("g")
@@ -301,7 +316,13 @@
 					"stroke-dasharray": function(d) { if (d.line === "Dash") return "5,5"; }
 				  });
 				
-				var edge_label_bgs = edge_groups
+				var edge_label_groups = edge_groups
+				.append("g")
+				  .attr({
+					"class": "edge_label_group"
+				  });
+				
+				var edge_label_bgs = edge_label_groups
 				.append("rect")
 				  .attr({
 					"class": "edge_label_bg"
@@ -311,7 +332,7 @@
 					//"visibility": function(d) { if (d.label) return "visible"; else return "hidden"; }
 				  });
 				
-				var edge_labels = edge_groups
+				var edge_labels = edge_label_groups
 				.append("text")
 				  .text(function(d) { if (d.label) return d.label; else return "Edge"; })
 				  .attr({
@@ -345,6 +366,11 @@
 							return edge_labels[0][i].getBBox().height + 1;
 						}
 				  });
+				  
+				edge_label_groups.on("mouseover", edge_over);
+				edge_label_groups.on("mouseout", edge_out);
+				
+			// Node
 				
 				var node_groups = svg.selectAll(".node_group")	// creo un gruppo che conterra tutti gli el. del nodo
 				  .data(graph.nodes)
