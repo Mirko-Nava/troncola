@@ -8,7 +8,7 @@
 	var container_width = undefined;
 	var container_height = undefined;
 
-	var Stage = {
+	var Troncola = {
 		
 // Variabili Pubbliche
 		
@@ -28,7 +28,7 @@
 			function node_over(d, i) {
 				d3.select(this).select(".node_label").transition()
 				  .attr({
-					"y": Stage.font_size / 2 - graph.nodes[i].height / 2
+					"y": Troncola.font_size / 2 - graph.nodes[i].height / 2
 				  });
 				  
 				d3.select(this).select(".node_desc")
@@ -37,20 +37,20 @@
 				  })
 				  .transition()
 				  .style({
-					  "font-size": Stage.font_size + "px"
+					  "font-size": Troncola.font_size + "px"
 				  });
 				  
 				d3.select(this).select(".node").transition()
 				  .attr({
-					"rx": d.width * Stage.scale_factor * 2,
-					"ry": d.width * Stage.scale_factor * 2
+					"rx": d.width * Troncola.scale_factor * 2,
+					"ry": d.width * Troncola.scale_factor * 2
 				  });
 			}
 
 			function node_out(d, i) {
 				d3.select(this).select(".node_label").transition()
 				  .attr({
-					"y": Stage.font_size / 2
+					"y": Troncola.font_size / 2
 				  });
 				  
 				d3.select(this).select(".node_desc")
@@ -66,8 +66,8 @@
 				  
 				d3.select(this).select(".node").transition()
 				  .attr({
-					"rx": d.width * Stage.scale_factor,
-					"ry": d.width * Stage.scale_factor
+					"rx": d.width * Troncola.scale_factor,
+					"ry": d.width * Troncola.scale_factor
 				  });
 			}
 			
@@ -154,8 +154,8 @@
 					"nodesep": 10,
 					"edgesep": 10,
 					"ranksep": 50,
-					"marginx": Stage.graph_margin,
-					"marginy": Stage.graph_margin
+					"marginx": Troncola.graph_margin,
+					"marginy": Troncola.graph_margin
 				};
 
 				g.setGraph(grafo);
@@ -220,7 +220,7 @@
 					  .attr({
 						"id": "arrow-" + color.substring(1),
 						"viewBox": "0 -7 10 14",
-						"refX": 10 + max_size * Stage.scale_factor,
+						"refX": 10 + max_size * Troncola.scale_factor,
 						"refY": 0,
 						"markerWidth": 5,
 						"markerHeight": 7,
@@ -232,7 +232,7 @@
 					  .style({
 						  "fill": "none",
 						  "stroke": color,
-						  "stroke-width": Stage.stroke_width + "px"
+						  "stroke-width": Troncola.stroke_width + "px"
 					  });
 				});
 			}
@@ -247,8 +247,7 @@
 		// Codice
 			
 			d3.xml(filename, function(error, data) {
-				if (error)
-					throw error;
+				if (error) throw error;
 				
 				var temp = [].map.call(data.querySelectorAll("key"), function(tag) {
 					return {
@@ -307,7 +306,7 @@
 					"class": "graph",
 					"width": container_width,
 					"height": graph_height,
-					"viewBox": "0 0 " + (graph_width + Stage.graph_margin) + " " + (graph_height + Stage.graph_margin)
+					"viewBox": "0 0 " + (graph_width + Troncola.graph_margin) + " " + (graph_height + Troncola.graph_margin)
 				  });
 				  
 				var defs = svg.append("defs");
@@ -334,7 +333,7 @@
 				  })
 				  .style({
 					"stroke": function(d) { return d.color; },
-					"stroke-width": function(d) { if (d.width) return d.width + "px"; else return Stage.stroke_width + "px"; },
+					"stroke-width": function(d) { if (d.width) return d.width + "px"; else return Troncola.stroke_width + "px"; },
 					"stroke-dasharray": function(d) { if (d.line === "Dash") return "5,5"; }
 				  });
 				
@@ -363,14 +362,14 @@
 								return (d.source.x + d.target.x) / 2;
 							},
 					  "y": function(d) {
-								return (Stage.font_size + d.source.y + d.target.y) / 2;
+								return (Troncola.font_size + d.source.y + d.target.y) / 2;
 							}
 				  })
 				  .style({
 					"fill": function(d) { if (d.fontcolor) return d.fontcolor; else return "#000000"; },
 					"text-anchor": "middle",
-					"font-size": function(d) { if (d.fontsize) return d.fontsize + "px"; else return Stage.font_size + "px"; },
-					"font-family": Stage.label_font_name//, //todo: enable
+					"font-size": function(d) { if (d.fontsize) return d.fontsize + "px"; else return Troncola.font_size + "px"; },
+					"font-family": Troncola.label_font_name//, //todo: enable
 					//"visibility": function(d) { if (d.label) return "visible"; else return "hidden"; }
 				  });
 				  
@@ -379,7 +378,7 @@
 							return edge_labels[0][i].getBBox().x - 1;
 						},
 				  "y": function(d) {
-							return (d.source.y + d.target.y - Stage.font_size) / 2;
+							return (d.source.y + d.target.y - Troncola.font_size) / 2;
 						},
 				  "width": function(d, i) { 
 							return edge_labels[0][i].getBBox().width + 1;
@@ -407,8 +406,8 @@
 				  .attr({
 					"class": "node",
 					//note: le frecce sono in posizione giusta sse width === height quindi faccio max
-					"rx": function(d) { return Math.max(d.height, d.width) /*d.width*/ * Stage.scale_factor; },
-					"ry": function(d) { return Math.max(d.height, d.width) /*d.height*/ * Stage.scale_factor; },
+					"rx": function(d) { return Math.max(d.height, d.width) /*d.width*/ * Troncola.scale_factor; },
+					"ry": function(d) { return Math.max(d.height, d.width) /*d.height*/ * Troncola.scale_factor; },
 					"cx": "0",
 					"cy": "0"
 				  })
@@ -424,13 +423,13 @@
 				  .attr({
 					  "class": "node_label",
 					  "x": "0",
-					  "y": Stage.font_size / 2
+					  "y": Troncola.font_size / 2
 				  })
 				  .style({
 					"fill": function(d) { return d.fontcolor; },
 					"text-anchor": "middle",
-					"font-size": Stage.font_size + "px",
-					"font-family": Stage.label_font_name
+					"font-size": Troncola.font_size + "px",
+					"font-family": Troncola.label_font_name
 				  });
 				
 				var node_descs = node_groups
@@ -439,13 +438,13 @@
 				  .attr({
 					"class": "node_desc",
 					"x": "0",
-					"y": Stage.font_size / 2
+					"y": Troncola.font_size / 2
 				  })
 				  .style({
 					"fill": "#000000",
 					"text-anchor": "middle",
 					"font-size": "0px",
-					"font-family": Stage.desc_font_name,
+					"font-family": Troncola.desc_font_name,
 					"visibility": "hidden"
 				  });
 				
@@ -455,11 +454,11 @@
 		}
 	};
 	
-	// Crea l'oggetto Stage a livello globale
+	// Crea l'oggetto Troncola a livello globale
 	if (typeof define === "function" && define.amd)
-		this.Stage = Stage, define(Stage);
+		this.Troncola = Troncola, define(Troncola);
 	else
-		if (typeof module === "object" && module.exports) module.exports = Stage;
+		if (typeof module === "object" && module.exports) module.exports = Troncola;
 	else
-		this.Stage = Stage;
+		this.Troncola = Troncola;
 } ();

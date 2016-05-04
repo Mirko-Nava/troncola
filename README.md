@@ -1,10 +1,10 @@
 # Tronco-viz
 **Tronco-viz** è una libreria per la visualizzazione di grafi generati dal pachetto [TRONCO](https://sites.google.com/site/troncopackage/).
-La libreria espone i propri metodi attraverso l'oggetto **Stage**.
+La libreria espone i propri metodi attraverso l'oggetto **Troncola**.
 
-## Stage
+## Troncola
 
-L'oggetto **Stage** contiene propietà che andranno a influire sull'estetica del grafo.
+L'oggetto **Troncola** contiene propietà che andranno a influire sull'estetica del grafo.
 Se esse non sono state definite le verranno assegnati dei valori in automatico.
 
 ### Proprietà grafiche
@@ -20,13 +20,13 @@ Se esse non sono state definite le verranno assegnati dei valori in automatico.
 
 #### draw_graph(*filename*)
 
-Si occupa della visualizzazione del grafico attraverso l'utilizzio di [d3](https://d3js.org/) e [dagre](https://github.com/cpettitt/dagre).
+Si occupa della visualizzazione del grafico attraverso l'utilizzio di [d3](https://d3js.org/) e [cola](http://marvl.infotech.monash.edu/webcola/).
 La funzione si divide in più fasi:
 
  - Inizialmente viene letto il file chiamato *filename*, di formato gml. Se il file non viene trovato si genera un errore
  - Vengono letti i tag **<key>** e vengono determinati gli attributi di grafo, nodi ed archi
  - Viene creato l'oggetto graph vero e proprio a cui si assegnano i rispettivi attributi
- - Si utilizza [dagre](https://github.com/cpettitt/dagre) per calcolare le coordinate dei vari nodi
+ - Si utilizza [cola](http://marvl.infotech.monash.edu/webcola/) per calcolare le coordinate dei vari nodi
  - Vengono creati i marker, ovvero le punte delle freccie, nei vari colori e con gli stili definiti nel gml
  - Si utilizza [d3](https://d3js.org/) per inserire nel DOM il grafo
  - Viene associato ai nodi un evento quando il mouse è "hover"
