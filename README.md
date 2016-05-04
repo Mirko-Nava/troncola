@@ -9,7 +9,6 @@ Se esse non sono state definite le verranno assegnati dei valori in automatico.
 
 ### Proprietà grafiche
 
- - graph_margin: Dimensione del bordo in pixel del grafo (Default = 0px)
  - scale_factor: Fattore di scala dei nodi del grafo (Default = 0.33)
  - stroke_width: Spessore delle linee degli archi (Default = 2px)
  - font_size: Dimensione in pixel dei testi del grafo (Default = 14px)
