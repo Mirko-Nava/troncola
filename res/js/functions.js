@@ -5,6 +5,8 @@
 	var graph_width = undefined;		// larghezza teorica del grafico
 	var graph_height = undefined;		// altezza teorica del grafico
 	var width_delta = 17;				// differenza tra la larghezza teorica del grafico e quella effettiva
+	var container_width = undefined;
+	var container_height = undefined;
 
 	var Stage = {
 		
@@ -178,6 +180,25 @@
 				graph_height = grafo.height;
 			}
 
+			function cola_position_graph(graph) {
+				var d3cola = cola.d3adaptor()
+				  .avoidOverlaps(true)
+				  .size([container_width, container_height]);
+				  
+				d3cola
+ 				  .nodes(graph.nodes)
+				  .links(graph.edges)         
+				  .constraints(graph.constraints)
+				  .flowLayout("y", 200)
+				  .symmetricDiffLinkLengths(40)
+				  .start(10, 20, 30);
+				
+				//d3cola.on("tick", function() {} );
+				
+				graph_width = container_width;
+				graph_height = container_height;
+			}
+			
 			function gen_markers(defs, graph) {
 				
 				var colors = [];	// array che contiene i possibili colori delle frecce
@@ -272,10 +293,11 @@
 				
 				graph = make_graph(data.querySelector("graph"), keys);	// genero il grafico con relativi attributi
 				
-				position_graph(graph);	// posiziono i nodi con un certo criterio
-			
-				var container_width = document.body.offsetWidth - width_delta;
-				var container_height = document.body.offsetHeight;
+				container_width = document.body.offsetWidth - width_delta;
+				container_height = document.body.offsetHeight;
+				
+				//position_graph(graph);	// posiziono i nodi con un certo criterio
+				cola_position_graph(graph);
 			
 			// SVG & defs
 			
@@ -304,10 +326,10 @@
 				.append("line")
 				  .attr({
 					"class": "edge",
-					"x1": function(d) { return graph.nodes[d.source].x; },
-					"y1": function(d) { return graph.nodes[d.source].y; },
-					"x2": function(d) { return graph.nodes[d.target].x; },
-					"y2": function(d) { return graph.nodes[d.target].y; },
+					"x1": function(d) { return d.source.x; },
+					"y1": function(d) { return d.source.y; },
+					"x2": function(d) { return d.target.x; },
+					"y2": function(d) { return d.target.y; },
 					"marker-end": function(d) { if (d.arrow === "True") return "url(#arrow-" + d.color.substring(1) + ")"; }
 				  })
 				  .style({
@@ -338,10 +360,10 @@
 				  .attr({
 					  "class": "edge_label",
 					  "x": function(d) {
-								return (graph.nodes[d.source].x + graph.nodes[d.target].x) / 2;
+								return (d.source.x + d.target.x) / 2;
 							},
 					  "y": function(d) {
-								return (Stage.font_size + graph.nodes[d.source].y + graph.nodes[d.target].y) / 2;
+								return (Stage.font_size + d.source.y + d.target.y) / 2;
 							}
 				  })
 				  .style({
@@ -357,7 +379,7 @@
 							return edge_labels[0][i].getBBox().x - 1;
 						},
 				  "y": function(d) {
-							return (graph.nodes[d.source].y + graph.nodes[d.target].y - Stage.font_size) / 2;
+							return (d.source.y + d.target.y - Stage.font_size) / 2;
 						},
 				  "width": function(d, i) { 
 							return edge_labels[0][i].getBBox().width + 1;
