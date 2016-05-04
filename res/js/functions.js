@@ -2,17 +2,18 @@
 
 // Variabili Private
 
-	var graph_width = undefined;		// larghezza teorica del grafico
-	var graph_height = undefined;		// altezza teorica del grafico
-	var width_delta = 17;				// differenza tra la larghezza teorica del grafico e quella effettiva
-	var container_width = undefined;
-	var container_height = undefined;
+	var node_hw = undefined;			// metà altezza massima dei nodi
+	var node_hh = undefined;			// metà larghezza massima dei nodi
+	var graph_x = undefined;			// x del grafico
+	var graph_y = undefined;			// y del grafico
+	var graph_width = undefined;		// larghezza del grafico
+	var graph_height = undefined;		// altezza del grafico
+	var hover_factor = 2;
 
 	var Troncola = {
 		
 // Variabili Pubbliche
 		
-		"graph_margin":		0,			// Pixel di margine ai lati
 		"scale_factor":		0.33,		// Fattore di scala per i nodi
 		"stroke_width":		2,			// Spessore linee
 		"font_size":		14,			// Dimensione font in px
@@ -42,8 +43,8 @@
 				  
 				d3.select(this).select(".node").transition()
 				  .attr({
-					"rx": d.width * Troncola.scale_factor * 2,
-					"ry": d.width * Troncola.scale_factor * 2
+					"rx": d.width * Troncola.scale_factor * hover_factor,
+					"ry": d.height * Troncola.scale_factor * hover_factor
 				  });
 			}
 
@@ -67,7 +68,7 @@
 				d3.select(this).select(".node").transition()
 				  .attr({
 					"rx": d.width * Troncola.scale_factor,
-					"ry": d.width * Troncola.scale_factor
+					"ry": d.height * Troncola.scale_factor
 				  });
 			}
 			
@@ -145,58 +146,19 @@
 				return graph;
 			}
 			
-			function position_graph(graph) {			
-				var g = new dagre.graphlib.Graph();
-				
-				var grafo = {			// attributi che influiscono sull'estetica del grafico
-					"rankdir": "TB",
-					//"align": "UR",	//note: la documentazione dice TB, ma non è un valore valido, qualunque valore valido != quello di default
-					"nodesep": 10,
-					"edgesep": 10,
-					"ranksep": 50,
-					"marginx": Troncola.graph_margin,
-					"marginy": Troncola.graph_margin
-				};
-
-				g.setGraph(grafo);
-				
-				g.setDefaultEdgeLabel(function() { return {}; });
-				
-				graph.nodes.forEach(function(n, i) {
-					g.setNode(i, n);
-				});
-				
-				graph.edges.forEach(function(e) {
-					g.setEdge(e.source, e.target, e);
-				});
-				
-				dagre.layout(g);	// questa funzione definisce in automatico x ed y dei nodi
-				
-				graph.edges.forEach(function(e) {	// rimuovo proprietà non usata dagli edge
-					delete e.points;
-				});
-				
-				graph_width = grafo.width;
-				graph_height = grafo.height;
-			}
-
 			function cola_position_graph(graph) {
 				var d3cola = cola.d3adaptor()
 				  .avoidOverlaps(true)
-				  .size([container_width, container_height]);
+				  .size([document.body.offsetWidth, document.body.offsetHeight]);
 				  
 				d3cola
  				  .nodes(graph.nodes)
-				  .links(graph.edges)         
-				  .constraints(graph.constraints)
+				  .links(graph.edges)
 				  .flowLayout("y", 200)
 				  .symmetricDiffLinkLengths(40)
 				  .start(10, 20, 30);
 				
 				//d3cola.on("tick", function() {} );
-				
-				graph_width = container_width;
-				graph_height = container_height;
 			}
 			
 			function gen_markers(defs, graph) {
@@ -212,15 +174,13 @@
 						}
 					}
 				});
-				
-				var max_size = d3.max(graph.nodes, function(n) { return Math.max(n.width, n.height); });	// dimensione massima di un nodo
-				
+
 				colors.forEach(function(color) {	// creo freccia per ogni colore
 					defs.append("marker")
 					  .attr({
 						"id": "arrow-" + color.substring(1),
 						"viewBox": "0 -7 10 14",
-						"refX": 10 + max_size * Troncola.scale_factor,
+						"refX": 11 + node_hh * 4 / Troncola.stroke_width,
 						"refY": 0,
 						"markerWidth": 5,
 						"markerHeight": 7,
@@ -247,7 +207,10 @@
 		// Codice
 			
 			d3.xml(filename, function(error, data) {
-				if (error) throw error;
+				if (error || data === null) {
+					alert("Errore durante il caricamento del file \"" + filename + "\"");
+					return;
+				}
 				
 				var temp = [].map.call(data.querySelectorAll("key"), function(tag) {
 					return {
@@ -292,11 +255,14 @@
 				
 				graph = make_graph(data.querySelector("graph"), keys);	// genero il grafico con relativi attributi
 				
-				container_width = document.body.offsetWidth - width_delta;
-				container_height = document.body.offsetHeight;
+				cola_position_graph(graph);		// posiziono i nodi con un certo criterio
 				
-				//position_graph(graph);	// posiziono i nodi con un certo criterio
-				cola_position_graph(graph);
+				node_hw = d3.max(graph.nodes, function(d) { return d.width; }) * Troncola.scale_factor * 0.5;
+				node_hh = d3.max(graph.nodes, function(d) { return d.height; }) * Troncola.scale_factor * 0.5;
+				graph_x = d3.min(graph.nodes, function(d) { return d.x - d.width * Troncola.scale_factor; });
+				graph_y = d3.min(graph.nodes, function(d) { return d.y - d.height * Troncola.scale_factor; });
+				graph_width = d3.max(graph.nodes, function(d) { return d.x + d.width * Troncola.scale_factor; }) - graph_x;
+				graph_height = d3.max(graph.nodes, function(d) { return d.y + d.height * Troncola.scale_factor; }) - graph_y;
 			
 			// SVG & defs
 			
@@ -304,13 +270,20 @@
 				.append("svg")
 				  .attr({
 					"class": "graph",
-					"width": container_width,
-					"height": graph_height,
-					"viewBox": "0 0 " + (graph_width + Troncola.graph_margin) + " " + (graph_height + Troncola.graph_margin)
+					"width": graph_width + 2 * (node_hw * hover_factor),
+					"height": graph_height + 2 * (node_hh * hover_factor),
 				  });
 				  
 				var defs = svg.append("defs");
 				gen_markers(defs, graph);		// genero le punte delle frecce
+							
+				svg = svg 
+				.append("g")
+				  .attr({
+					"transform": "translate(" + 
+						(-graph_x + node_hw * hover_factor) + ", " +
+						(-graph_y + node_hh * hover_factor) + ")"
+				  });
 				
 			// Edge	
 			
@@ -329,11 +302,15 @@
 					"y1": function(d) { return d.source.y; },
 					"x2": function(d) { return d.target.x; },
 					"y2": function(d) { return d.target.y; },
-					"marker-end": function(d) { if (d.arrow === "True") return "url(#arrow-" + d.color.substring(1) + ")"; }
+					"marker-end": function(d) {
+									if (d.arrow === "True") return "url(#arrow-" + d.color.substring(1) + ")"; 
+								}
 				  })
 				  .style({
 					"stroke": function(d) { return d.color; },
-					"stroke-width": function(d) { if (d.width) return d.width + "px"; else return Troncola.stroke_width + "px"; },
+					"stroke-width": function(d) {
+										if (d.width) return d.width + "px"; else return Troncola.stroke_width + "px";
+									},
 					"stroke-dasharray": function(d) { if (d.line === "Dash") return "5,5"; }
 				  });
 				
@@ -368,7 +345,9 @@
 				  .style({
 					"fill": function(d) { if (d.fontcolor) return d.fontcolor; else return "#000000"; },
 					"text-anchor": "middle",
-					"font-size": function(d) { if (d.fontsize) return d.fontsize + "px"; else return Troncola.font_size + "px"; },
+					"font-size": function(d) {
+									if (d.fontsize) return d.fontsize + "px"; else return Troncola.font_size + "px";
+								},
 					"font-family": Troncola.label_font_name//, //todo: enable
 					//"visibility": function(d) { if (d.label) return "visible"; else return "hidden"; }
 				  });
@@ -388,8 +367,8 @@
 						}
 				  });
 				  
-				edge_label_groups.on("mouseover", edge_over);
-				edge_label_groups.on("mouseout", edge_out);
+				edge_groups.on("mouseover", edge_over);
+				edge_groups.on("mouseout", edge_out);
 				
 			// Node
 				
@@ -405,9 +384,8 @@
 				.append("ellipse")
 				  .attr({
 					"class": "node",
-					//note: le frecce sono in posizione giusta sse width === height quindi faccio max
-					"rx": function(d) { return Math.max(d.height, d.width) /*d.width*/ * Troncola.scale_factor; },
-					"ry": function(d) { return Math.max(d.height, d.width) /*d.height*/ * Troncola.scale_factor; },
+					"rx": function(d) { return d.width * Troncola.scale_factor; },
+					"ry": function(d) { return d.height * Troncola.scale_factor; },
 					"cx": "0",
 					"cy": "0"
 				  })
@@ -434,7 +412,9 @@
 				
 				var node_descs = node_groups
 				.append("text")
-				  .text(function(d) { if (d.name === "OR" || d.name === "XOR") return d.name; else return d.type; })
+				  .text(function(d) {
+							if (d.name === "OR" || d.name === "XOR") return d.name; else return d.type;
+						})
 				  .attr({
 					"class": "node_desc",
 					"x": "0",
