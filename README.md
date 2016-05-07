@@ -1,5 +1,5 @@
-# Tronco-viz
-**Tronco-viz** è una libreria per la visualizzazione di grafi generati dal pachetto [TRONCO](https://sites.google.com/site/troncopackage/).
+# Troncola
+**Troncola** è una libreria per la visualizzazione di grafi generati dal pachetto [TRONCO](https://sites.google.com/site/troncopackage/).
 La libreria espone i propri metodi attraverso l'oggetto **Troncola**.
 
 ## Troncola
@@ -29,3 +29,7 @@ La funzione si divide in più fasi:
  - Vengono creati i marker, ovvero le punte delle freccie, nei vari colori e con gli stili definiti nel gml
  - Si utilizza [d3](https://d3js.org/) per inserire nel DOM il grafo
  - Viene associato ai nodi un evento quando il mouse è "hover"
+ 
+ ### Esempio
+ 
+ Puoi trovare un esempio di **Troncola** [qui](http://bl.ocks.org/Mirko-o/436d7a6e0b8061a2f827d83edeb6049c)
