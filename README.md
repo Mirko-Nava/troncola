@@ -30,6 +30,7 @@ La funzione si divide in più fasi:
  - Si utilizza [d3](https://d3js.org/) per inserire nel DOM il grafo
  - Viene associato ai nodi un evento quando il mouse è "hover"
  
- ### Esempio
- 
- Puoi trovare un esempio di **Troncola** [qui](http://bl.ocks.org/Mirko-o/436d7a6e0b8061a2f827d83edeb6049c)
+
+### Esempio
+
+Puoi trovare un esempio di **Troncola** [qui](http://bl.ocks.org/Mirko-o/436d7a6e0b8061a2f827d83edeb6049c)
