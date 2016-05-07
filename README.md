@@ -33,4 +33,4 @@ La funzione si divide in più fasi:
 
 ### Esempio
 
-Puoi trovare un esempio di **Troncola** [qui](http://bl.ocks.org/Mirko-o/436d7a6e0b8061a2f827d83edeb6049c)
+Puoi trovare un esempio di Troncola [qui](http://bl.ocks.org/Mirko-o/436d7a6e0b8061a2f827d83edeb6049c)
