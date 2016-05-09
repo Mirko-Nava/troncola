@@ -159,8 +159,8 @@
 				d3cola
  				  .nodes(graph.nodes)
 				  .links(graph.edges)
-				  .flowLayout("y", 200)
-				  .symmetricDiffLinkLengths(40)
+				  .flowLayout("y", node_hh * 2)
+				  .symmetricDiffLinkLengths(node_hw)
 				  .start(10, 20, 30);
 				
 				//d3cola.on("tick", function() {} );
@@ -263,17 +263,17 @@
 					}
 				});
 				
-				graph = make_graph(data.querySelector("graph"), keys);	// genero il grafico con relativi attributi
-				
-				cola_position_graph(graph);		// posiziono i nodi con un certo criterio
-				
 				node_hw = d3.max(graph.nodes, function(d) { return d.width; }) * Troncola.scale_factor * 0.5;
 				node_hh = d3.max(graph.nodes, function(d) { return d.height; }) * Troncola.scale_factor * 0.5;
 				graph_x = d3.min(graph.nodes, function(d) { return d.x - d.width * Troncola.scale_factor; });
 				graph_y = d3.min(graph.nodes, function(d) { return d.y - d.height * Troncola.scale_factor; });
 				graph_width = d3.max(graph.nodes, function(d) { return d.x + d.width * Troncola.scale_factor; }) - graph_x;
 				graph_height = d3.max(graph.nodes, function(d) { return d.y + d.height * Troncola.scale_factor; }) - graph_y;
-			
+
+				graph = make_graph(data.querySelector("graph"), keys);	// genero il grafico con relativi attributi
+				
+				cola_position_graph(graph);		// posiziono i nodi con un certo criterio
+
 			// SVG & defs
 			
 				var svg = d3.select("body")
