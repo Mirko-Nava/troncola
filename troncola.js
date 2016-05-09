@@ -150,7 +150,7 @@
 				var d3cola = cola.d3adaptor()
 				  .avoidOverlaps(true)
 				  .size([document.body.offsetWidth, document.body.offsetHeight]);
-				
+
 				graph.nodes.forEach(function (n) {
 					n.width *= hover_factor * 0.66;
 					n.height *= hover_factor * 0.66;
@@ -159,17 +159,17 @@
 				d3cola
  				  .nodes(graph.nodes)
 				  .links(graph.edges)
-				  .flowLayout("y", node_hh * 4.5)
+				  .flowLayout("y", node_hh * 2.5)
 				  //.linkDistance(node_hh)
-				  .symmetricDiffLinkLengths(node_hw * 1.1)
-				  .start(10, 20, 30);
+				  .symmetricDiffLinkLengths(node_hw * 1.5)
+				  .start(50, 15, 5);
 				
 				//d3cola.on("tick", function() {} );
 
 				graph.nodes.forEach(function (n) {
 					n.width /= hover_factor * 0.66;
 					n.height /= hover_factor * 0.66;
-				})
+				});
 			}
 			
 			function gen_markers(defs, graph) {
