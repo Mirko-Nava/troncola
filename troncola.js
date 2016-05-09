@@ -152,22 +152,23 @@
 				  .size([document.body.offsetWidth, document.body.offsetHeight]);
 				
 				graph.nodes.forEach(function (n) {
-					n.width *= hover_factor;
-					n.height *= hover_factor;
+					n.width *= hover_factor * 0.66;
+					n.height *= hover_factor * 0.66;
 				})
 
 				d3cola
  				  .nodes(graph.nodes)
 				  .links(graph.edges)
-				  .flowLayout("y", node_hh * 2)
-				  .symmetricDiffLinkLengths(node_hw)
+				  .flowLayout("y", node_hh * 4.5)
+				  //.linkDistance(node_hh)
+				  .symmetricDiffLinkLengths(node_hw * 1.1)
 				  .start(10, 20, 30);
 				
 				//d3cola.on("tick", function() {} );
 
 				graph.nodes.forEach(function (n) {
-					n.width /= hover_factor;
-					n.height /= hover_factor;
+					n.width /= hover_factor * 0.66;
+					n.height /= hover_factor * 0.66;
 				})
 			}
 			
@@ -264,15 +265,16 @@
 				});
 
 				graph = make_graph(data.querySelector("graph"), keys);	// genero il grafico con relativi attributi
-
+				
 				node_hw = d3.max(graph.nodes, function(d) { return d.width; }) * Troncola.scale_factor * 0.5;
 				node_hh = d3.max(graph.nodes, function(d) { return d.height; }) * Troncola.scale_factor * 0.5;
+
+				cola_position_graph(graph);		// posiziono i nodi con un certo criterio
+
 				graph_x = d3.min(graph.nodes, function(d) { return d.x - d.width * Troncola.scale_factor; });
 				graph_y = d3.min(graph.nodes, function(d) { return d.y - d.height * Troncola.scale_factor; });
 				graph_width = d3.max(graph.nodes, function(d) { return d.x + d.width * Troncola.scale_factor; }) - graph_x;
 				graph_height = d3.max(graph.nodes, function(d) { return d.y + d.height * Troncola.scale_factor; }) - graph_y;
-				
-				cola_position_graph(graph);		// posiziono i nodi con un certo criterio
 
 			// SVG & defs
 			
@@ -281,7 +283,7 @@
 				  .attr({
 					"class": "graph",
 					"width": graph_width + 2 * (node_hw * hover_factor),
-					"height": graph_height + 2 * (node_hh * hover_factor),
+					"height": graph_height + 2 * (node_hh * hover_factor)
 				  });
 				  
 				var defs = svg.append("defs");
@@ -336,8 +338,8 @@
 					"class": "edge_label_bg"
 				  })
 				  .style({
-					"fill": "#FFFFFF", //todo: enable
-					"visibility": function(d) { if (d.label) return "visible"; else return "hidden"; }
+					"fill": "#FFFFFF"//, //todo: enable
+					//"visibility": function(d) { if (d.label) return "visible"; else return "hidden"; }
 				  });
 				
 				var edge_labels = edge_label_groups
@@ -353,7 +355,7 @@
 							}
 				  })
 				  .style({
-					"fill": function(d) { if (d.fontcolor) return d.fontcolor; else return "#000000"; },
+					"fill": function(d) { if (d.fontcolor) return d.fontcolor; else return d.color; },
 					"text-anchor": "middle",
 					"font-size": function(d) {
 									if (d.fontsize) return d.fontsize + "px"; else return Troncola.font_size + "px";
