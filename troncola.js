@@ -8,7 +8,7 @@
 	var graph_y = undefined;			// y del grafico
 	var graph_width = undefined;		// larghezza del grafico
 	var graph_height = undefined;		// altezza del grafico
-	var hover_factor = 2;
+	var hover_factor = 2;				// fattore di scaling dei nodi on hover
 
 	var Troncola = {
 		
@@ -150,7 +150,12 @@
 				var d3cola = cola.d3adaptor()
 				  .avoidOverlaps(true)
 				  .size([document.body.offsetWidth, document.body.offsetHeight]);
-				  
+				
+				graph.nodes.forEach(function (n) {
+					n.width *= hover_factor;
+					n.height *= hover_factor;
+				})
+
 				d3cola
  				  .nodes(graph.nodes)
 				  .links(graph.edges)
@@ -159,6 +164,11 @@
 				  .start(10, 20, 30);
 				
 				//d3cola.on("tick", function() {} );
+
+				graph.nodes.forEach(function (n) {
+					n.width /= hover_factor;
+					n.height /= hover_factor;
+				})
 			}
 			
 			function gen_markers(defs, graph) {
