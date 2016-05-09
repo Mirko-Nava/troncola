@@ -326,8 +326,8 @@
 					"class": "edge_label_bg"
 				  })
 				  .style({
-					"fill": "#FFFFFF"//, //todo: enable
-					//"visibility": function(d) { if (d.label) return "visible"; else return "hidden"; }
+					"fill": "#FFFFFF", //todo: enable
+					"visibility": function(d) { if (d.label) return "visible"; else return "hidden"; }
 				  });
 				
 				var edge_labels = edge_label_groups
