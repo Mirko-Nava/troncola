@@ -249,8 +249,19 @@
 			}
 
 			function NCBIGeneQueryURL(gene, organism) {
-				gene = gene.split("_")[0];	// e.g.: gene "CBL_Ex_8_9" diventa "CBL", JARID_2 rinominato in JARID2
-				return "http://www.ncbi.nlm.nih.gov/gene/?term=" +  gene + "[sym]" + organism + "[ORGN]";
+				var url = "http://www.ncbi.nlm.nih.gov/gene/?term=";
+				
+				if (gene)
+				{
+					url += gene.split("_")[0] + "[SYM]";	// e.g.: gene "CBL_Ex_8_9" diventa "CBL", JARID_2 rinominato in JARID2
+				}
+				
+				if (organism)
+				{
+					url += organism + "[ORGN]";
+				}
+
+				return url;
 			}
 			
 		// Codice
