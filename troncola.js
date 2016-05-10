@@ -26,20 +26,58 @@
 			
 		// Eventi
 		
-			function node_over(d, i) {
-				d3.select(this).select(".node_label").transition()
+			function show_contextmenu(d, i) {
+				var context_menu = d3.select("#context_menu");
+				var mouse_pos = d3.mouse(document.body);
+
+				context_menu
 				  .attr({
-					"y": Troncola.font_size / 2 - graph.nodes[i].height / 2
+					"width": "auto",
+					"height": "auto"
+				  })
+				  .style({
+				  	"left": mouse_pos[0] + "px",
+				  	"top": mouse_pos[1] + "px",
+				  	"visibility": "visible"
 				  });
+
+				context_menu.select("a")
+				  .text("Goto NCBI Gene " + d.name)
+				  .attr("href", NCBIGeneQueryURL(d.name, "human"))
+				  .style("visibility", "visible");
+
+				context_menu.select("p")
+				  .style("visibility", "visible");
+
+				d3.event.preventDefault();
+				d3.event.stopPropagation();
+				return false;
+			}
+
+			function hide_contextmenu(d, i) {
+				var context_menu = d3.select("#context_menu")
+				  .attr({
+					"width": "0px",
+					"height": "0px" 
+				  })
+				  .style("visibility", "hidden");
+
+				context_menu.select("a")
+				  .style("visibility", "hidden");
+
+				context_menu.select("p")
+				  .style("visibility", "hidden");
+			}
+
+			function node_over(d, i) {
+				d3.select(this).select(".node_label")
+				.transition()
+				  .attr("y", Troncola.font_size / 2 - graph.nodes[i].height / 2);
 				  
 				d3.select(this).select(".node_desc")
-				  .style({
-					"visibility": "visible"
-				  })
-				  .transition()
-				  .style({
-					  "font-size": Troncola.font_size + "px"
-				  });
+				  .style("visibility", "visible")
+				.transition()
+				  .style("font-size", Troncola.font_size + "px");
 				  
 				d3.select(this).select(".node").transition()
 				  .attr({
@@ -49,16 +87,13 @@
 			}
 
 			function node_out(d, i) {
-				d3.select(this).select(".node_label").transition()
-				  .attr({
-					"y": Troncola.font_size / 2
-				  });
+				d3.select(this).select(".node_label")
+				.transition()
+				  .attr("y", Troncola.font_size / 2);
 				  
 				d3.select(this).select(".node_desc")
-				  .transition()
-				  .style({
-					  "font-size": "0px"
-				  })
+				.transition()
+				  .style("font-size", "0px")
 				  .each("end", function() {
 					  d3.select(this).style({
 						"visibility": "hidden"
@@ -73,17 +108,15 @@
 			}
 			
 			function edge_over(d, i) {
-				d3.select(this).select(".edge_label_bg").transition()
-				  .style({
-					  "fill": "#FFFF00"
-				  })
+				d3.select(this).select(".edge_label_bg")
+				.transition()
+				  .style("fill", "#FFFF00");
 			}
 			
 			function edge_out(d, i) {
-				d3.select(this).select(".edge_label_bg").transition()
-				  .style({
-					  "fill": "#FFFFFF"
-				  })
+				d3.select(this).select(".edge_label_bg")
+				.transition()
+				  .style("fill", "#FFFFFF");
 			}
 			
 		// Generazione grafico
@@ -214,6 +247,11 @@
 				}
 				return -1;
 			}
+
+			function NCBIGeneQueryURL(gene, organism) {
+				gene = gene.split("_")[0];	// e.g.: gene "CBL_Ex_8_9" diventa "CBL", JARID_2 rinominato in JARID2
+				return "http://www.ncbi.nlm.nih.gov/gene/?term=" +  gene + "[sym]" + organism + "[ORGN]";
+			}
 			
 		// Codice
 			
@@ -283,12 +321,15 @@
 				  .attr({
 					"class": "graph",
 					"width": graph_width + 2 * (node_hw * hover_factor),
-					"height": graph_height + 2 * (node_hh * hover_factor)
+					"height": graph_height + 2 * (node_hh * hover_factor),
+					"xmlns": "http://www.w3.org/2000/svg",
+					"xmlns:xlink": "http://www.w3.org/1999/xlink",
+					"version": "1.1"
 				  });
 				  
 				var defs = svg.append("defs");
 				gen_markers(defs, graph);		// genero le punte delle frecce
-							
+
 				svg = svg 
 				.append("g")
 				  .attr({
@@ -391,6 +432,7 @@
 					  "class": "node_group",
 					  "transform": function(d) { return "translate(" + d.x + ", " + d.y + ")"; }
 				  });
+				  //.call(cola.drag);	//user draw_graph
 				
 				var nodes = node_groups
 				.append("ellipse")
@@ -408,6 +450,15 @@
 				  });
 				
 				var node_labels = node_groups
+				.append("a")
+				  .attr({	//here
+				  	"class": "label_link",
+				  	"xlink:title": function(d){ return "NCBI Gene " + d.label; },
+				  	"xlink:href": function(d){ return NCBIGeneQueryURL(d.label, "human"); },
+				  	"target": "_blank"
+				  });
+
+				node_groups.selectAll(".label_link")
 				.append("text")
 				  .text(function(d) { return d.label; })
 				  .attr({
@@ -439,9 +490,62 @@
 					"font-family": Troncola.desc_font_name,
 					"visibility": "hidden"
 				  });
-				
+
+			// Context menu
+
+				//document.event.contextmenu.enabled = true;
+
+				d3.select("body")
+				.append("div")
+				  .attr({
+				  	"id": "context_menu",
+				  	"width": "0px",
+				  	"height": "0px"
+				  })
+				  .style({
+				  	"position": "absolute",
+				  	"left": "0",
+				  	"top": "0",
+				  	"padding": "3px",
+				  	"background-color": "#DDDDDD",
+				  	"border": "1px outset #000000",
+				  	"visibility": "hidden"
+				  });
+
+				var context_menu = d3.select("#context_menu");
+
+				context_menu
+				.append("a")
+				  .attr({
+				  	"href": "url",
+				  	"target": "_blank"
+				  })
+				  .style({
+				  	"color": "#000000",
+				  	"text-align": "center",
+				  	"text-decoration": "none",
+				  	"margin": "0px",
+				  	"visibility": "hidden"
+				  })
+				  .text("")
+				  .on("click", hide_contextmenu);
+
+				context_menu
+				.append("p")
+				  .style({
+				  	"text-align": "center",
+				  	"margin": "0px",
+				  	"margin-top": "3px",
+				  	"border": "3px outset #000000",
+				  	"visibility": "hidden"
+				  })
+				  .text("Cancel")
+				  .on("click", hide_contextmenu);
+
+
 				node_groups.on("mouseover", node_over);
 				node_groups.on("mouseout", node_out);
+				node_groups.on("contextmenu", show_contextmenu);
 			});
 		}
 	};
