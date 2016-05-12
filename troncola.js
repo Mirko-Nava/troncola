@@ -2,6 +2,7 @@
 
 // Variabili Private
 
+	var d3cola = undefined;
 	var node_hw = undefined;			// metà altezza massima dei nodi
 	var node_hh = undefined;			// metà larghezza massima dei nodi
 	var graph_x = undefined;			// x del grafico
@@ -9,6 +10,9 @@
 	var graph_width = undefined;		// larghezza del grafico
 	var graph_height = undefined;		// altezza del grafico
 	var hover_factor = 2;				// fattore di scaling dei nodi on hover
+	var dragging = false;
+	var drag_x = 0;
+	var drag_y = 0;
 
 	var Troncola = {
 		
@@ -69,17 +73,90 @@
 				  .style("visibility", "hidden");
 			}
 
+			function start_drag(d, i) {
+				if (!dragging)
+				{
+					dragging = true;
+					var mouse = d3.mouse(document.body);
+					drag_x = mouse[0];
+					drag_y = mouse[1];
+					d3.select(this).style("cursor", "grabbing");
+					d3.event.preventDefault();
+					return false;
+				}
+			}
+
+			function keep_drag(d, i) {
+				if (dragging)
+				{
+					var node = d3.select(this);
+					var mouse = d3.mouse(document.body);
+					d.x += mouse[0] - drag_x;
+					d.y += mouse[1] - drag_y;
+
+					node.attr("transform", "translate(" + d.x + ", " + d.y + ")");
+					drag_x = mouse[0];
+					drag_y = mouse[1];
+
+					// per ogni edge aggiorno source o target sse == this
+					d3.selectAll(".edge_group")[0].forEach(function(e) {
+						edge = d3.select(e).select(".edge");
+						if (edge.datum().source.id === node.datum().id) {
+							edge
+							  .attr({
+								"x1": d.x,
+								"y1": d.y
+							  });
+						}
+
+						if (edge.datum().target.id === node.datum().id) {
+							edge
+							  .attr({
+								"x2": d.x,
+								"y2": d.y
+							  });
+						}
+					});
+
+					d3.event.preventDefault();
+					return false;
+				}
+			}
+
+			function stop_drag(d, i) {
+				if (dragging)
+				{
+					dragging =  false;
+					d3.select(this).style("cursor", "grab");
+
+					d3.event.preventDefault();
+					return false;
+				}
+			}
+
 			function node_over(d, i) {
-				d3.select(this).select(".node_label")
-				.transition()
-				  .attr("y", Troncola.font_size / 2 - graph.nodes[i].height / 2);
+				var node_group = d3.select(this);
+
+				if (!(d.name === "OR" || d.name === "XOR")) {
+					node_group.select(".node_label")
+					.transition()
+					  .attr("y", (Troncola.font_size - graph.nodes[i].height) / 2);
+
+					/*node_group.select(".node_anchor")
+					.transition()
+					  .attr("y", (graph.nodes[i].height) / 2)
+					  .each("end", function() {
+						d3.select(this).style("visibility", "visible");
+					  });*/
+				}
 				  
-				d3.select(this).select(".node_desc")
+				node_group.select(".node_desc")
 				  .style("visibility", "visible")
 				.transition()
 				  .style("font-size", Troncola.font_size + "px");
 				  
-				d3.select(this).select(".node").transition()
+				node_group.select(".node")
+				.transition()
 				  .attr({
 					"rx": d.width * Troncola.scale_factor * hover_factor,
 					"ry": d.height * Troncola.scale_factor * hover_factor
@@ -87,11 +164,18 @@
 			}
 
 			function node_out(d, i) {
-				d3.select(this).select(".node_label")
+				var node_group = d3.select(this);
+
+				node_group.select(".node_label")
 				.transition()
 				  .attr("y", Troncola.font_size / 2);
+
+				/*node_group.select(".node_anchor")
+				.transition()
+				  .attr("y", "0")
+				  .style("visibility", "hidden");*/
 				  
-				d3.select(this).select(".node_desc")
+				node_group.select(".node_desc")
 				.transition()
 				  .style("font-size", "0px")
 				  .each("end", function() {
@@ -100,11 +184,15 @@
 					  });
 				  });
 				  
-				d3.select(this).select(".node").transition()
+				node_group.select(".node").transition()
 				  .attr({
 					"rx": d.width * Troncola.scale_factor,
 					"ry": d.height * Troncola.scale_factor
 				  });
+
+				if (dragging) {
+					stop_drag.call(this, d, i);
+				}
 			}
 			
 			function edge_over(d, i) {
@@ -180,7 +268,7 @@
 			}
 			
 			function cola_position_graph(graph) {
-				var d3cola = cola.d3adaptor()
+				d3cola = cola.d3adaptor()
 				  .avoidOverlaps(true)
 				  .size([document.body.offsetWidth, document.body.offsetHeight]);
 
@@ -193,7 +281,6 @@
  				  .nodes(graph.nodes)
 				  .links(graph.edges)
 				  .flowLayout("y", node_hh * 2.5)
-				  //.linkDistance(node_hh)
 				  .symmetricDiffLinkLengths(node_hw * 1.5)
 				  .start(50, 15, 5);
 				
@@ -378,7 +465,7 @@
 					"stroke-dasharray": function(d) { if (d.line === "Dash") return "5,5"; }
 				  });
 				
-				var edge_label_groups = edge_groups
+				/*var edge_label_groups = edge_groups
 				.append("g")
 				  .attr({
 					"class": "edge_label_group"
@@ -433,6 +520,7 @@
 				  
 				edge_groups.on("mouseover", edge_over);
 				edge_groups.on("mouseout", edge_out);
+				*/
 				
 			// Node
 				
@@ -441,9 +529,9 @@
 				.enter().append("g")
 				  .attr({
 					  "class": "node_group",
+					  "cursor": "grab",
 					  "transform": function(d) { return "translate(" + d.x + ", " + d.y + ")"; }
 				  });
-				  //.call(cola.drag);	//user draw_graph
 				
 				var nodes = node_groups
 				.append("ellipse")
@@ -460,16 +548,16 @@
 					"stroke-width": function(d) { return d.borderwidth; }
 				  });
 				
-				var node_labels = node_groups
+				var node_hrefs = node_groups
 				.append("a")
-				  .attr({	//here
+				  .attr({
 				  	"class": "label_link",
-				  	"xlink:title": function(d){ return "NCBI Gene " + d.label; },
-				  	"xlink:href": function(d){ return NCBIGeneQueryURL(d.label, "human"); },
+				  	"xlink:title": function(d) { return "NCBI Gene " + d.label; },
+				  	"xlink:href": function(d) { return NCBIGeneQueryURL(d.label, "human"); },
 				  	"target": "_blank"
 				  });
 
-				node_groups.selectAll(".label_link")
+				var node_labels = node_groups.selectAll(".label_link")
 				.append("text")
 				  .text(function(d) { return d.label; })
 				  .attr({
@@ -483,6 +571,22 @@
 					"font-size": Troncola.font_size + "px",
 					"font-family": Troncola.label_font_name
 				  });
+
+				/*var node_anchors = node_groups
+				.append("rect")
+				  .attr({
+				  	"class": "node_anchor",
+				  	"x": - Troncola.font_size / 2,
+				  	"width": Troncola.font_size,
+				  	"height": Troncola.font_size
+				  })
+				  .style({
+				  	"cursor": "grab",
+				  	"fill": "#FFFF00",
+				  	"stroke": "#000000",
+				  	"stroke-width": "1px",
+				  	"visibility": "hidden"
+				  });*/
 				
 				var node_descs = node_groups
 				.append("text")
@@ -503,8 +607,6 @@
 				  });
 
 			// Context menu
-
-				//document.event.contextmenu.enabled = true;
 
 				d3.select("body")
 				.append("div")
@@ -544,10 +646,11 @@
 				context_menu
 				.append("p")
 				  .style({
+				  	"cursor": "pointer",
 				  	"text-align": "center",
 				  	"margin": "0px",
 				  	"margin-top": "3px",
-				  	"border": "3px outset #000000",
+				  	"border-top": "1px solid #AAAAAA",
 				  	"visibility": "hidden"
 				  })
 				  .text("Cancel")
@@ -556,6 +659,9 @@
 
 				node_groups.on("mouseover", node_over);
 				node_groups.on("mouseout", node_out);
+				node_groups.on("mousedown", start_drag);
+				node_groups.on("mousemove", keep_drag);
+				node_groups.on("mouseup", stop_drag);
 				node_groups.on("contextmenu", show_contextmenu);
 			});
 		}
