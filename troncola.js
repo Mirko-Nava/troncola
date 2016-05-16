@@ -108,7 +108,7 @@
 					d.x += dx;
 					d.y += dy;
 
-					console.log("dragging from (" + drag_x + ", " + drag_y + ") to (" + d3.event.clientX + ", " + d3.event.clientY + ")");
+					console.log("dragging - delta = (" + dx + ", " + dy + ")");
 
 					node.attr("transform", "translate(" + d.x + ", " + d.y + ")");
 					drag_x += dx;
@@ -694,6 +694,7 @@
 				node_groups.on("touchend", stop_drag);
 				node_groups.on("touchenter", node_over);
 				node_groups.on("touchleave", node_out);
+				node_groups.on("touchcancel", node_out);
 			});
 		}
 	};
