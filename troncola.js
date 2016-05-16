@@ -85,6 +85,7 @@
 						drag_x = d3.event.touches[0].clientX;
 						drag_y = d3.event.touches[0].clientY;
 					}
+					console.log("(" + drag_x + ", " + drag_y + ")");
 					dragging = d.id;
 					d3.select(this).style("cursor", "grabbing");
 					d3.event.preventDefault();
@@ -108,11 +109,12 @@
 					d.x += dx;
 					d.y += dy;
 
-					console.log("dragging - delta = (" + dx + ", " + dy + ")");
+					//console.log("dragging - delta = (" + dx + ", " + dy + ")");
 
 					node.attr("transform", "translate(" + d.x + ", " + d.y + ")");
 					drag_x += dx;
 					drag_y += dy;
+					console.log("(" + drag_x + ", " + drag_y + ")");
 
 					// update only nodes wich has source or target === this
 					d3.selectAll(".edge_group")[0].forEach(function(e) {
@@ -142,7 +144,7 @@
 			function stop_drag(d, i) {
 				if (dragging === d.id)
 				{
-					console.log("stop drag at " + d.id);
+					//console.log("stop drag at " + d.id);
 					dragging = undefined;
 					drag_x = 0;
 					drag_y = 0;
