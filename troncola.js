@@ -10,9 +10,10 @@
 	var graph_width = undefined;		// larghezza del grafico
 	var graph_height = undefined;		// altezza del grafico
 	var hover_factor = 2;				// fattore di scaling dei nodi on hover
-	var dragging = false;
-	var drag_x = 0;
-	var drag_y = 0;
+	var dragging = undefined;			// id del nodo in fase dragging
+	var hovering = undefined;			// ide del nodo in fase hovering
+	var drag_x = 0;						// x del mouse al frame precedente
+	var drag_y = 0;						// y del mouse al frame precendete
 
 	var Troncola = {
 		
@@ -31,8 +32,8 @@
 		// Eventi
 		
 			function show_contextmenu(d, i) {
-				var context_menu = d3.select("#context_menu");
-				var mouse_pos = d3.mouse(document.body);
+				var context_menu = d3.select("#context_menu"),
+					mouse_pos = d3.mouse(document.body);
 
 				context_menu
 				  .attr({
@@ -76,10 +77,15 @@
 			function start_drag(d, i) {
 				if (!dragging)
 				{
-					dragging = true;
-					var mouse = d3.mouse(document.body);
-					drag_x = mouse[0];
-					drag_y = mouse[1];
+					console.log("start drag at " + d.id);
+					if (d3.event.type === "mousedown") {
+						drag_x = d3.event.clientX;
+						drag_y = d3.event.clientY;
+					} else if (d3.event.type === "touchstart") {
+						drag_x = d3.event.touches[0].clientX;
+						drag_y = d3.event.touches[0].clientY;
+					}
+					dragging = d.id;
 					d3.select(this).style("cursor", "grabbing");
 					d3.event.preventDefault();
 					return false;
@@ -87,18 +93,28 @@
 			}
 
 			function keep_drag(d, i) {
-				if (dragging)
+				if (dragging === d.id)
 				{
-					var node = d3.select(this);
-					var mouse = d3.mouse(document.body);
-					d.x += mouse[0] - drag_x;
-					d.y += mouse[1] - drag_y;
+					var node = d3.select(this), dx, dy;
+
+					if (d3.event.type === "mousemove") {
+						dx = Math.floor(d3.event.clientX - drag_x);
+						dy = Math.floor(d3.event.clientY - drag_y);
+					} else if (d3.event.type === "touchmove") {
+						dx = Math.floor(d3.event.touches[0].clientX - drag_x);
+						dy = Math.floor(d3.event.touches[0].clientY - drag_y);
+					}
+
+					d.x += dx;
+					d.y += dy;
+
+					console.log("dragging from (" + drag_x + ", " + drag_y + ") to (" + d3.event.clientX + ", " + d3.event.clientY + ")");
 
 					node.attr("transform", "translate(" + d.x + ", " + d.y + ")");
-					drag_x = mouse[0];
-					drag_y = mouse[1];
+					drag_x += dx;
+					drag_y += dy;
 
-					// per ogni edge aggiorno source o target sse == this
+					// update only nodes wich has source or target === this
 					d3.selectAll(".edge_group")[0].forEach(function(e) {
 						edge = d3.select(e).select(".edge");
 						if (edge.datum().source.id === node.datum().id) {
@@ -124,73 +140,79 @@
 			}
 
 			function stop_drag(d, i) {
-				if (dragging)
+				if (dragging === d.id)
 				{
-					dragging =  false;
+					console.log("stop drag at " + d.id);
+					dragging = undefined;
 					d3.select(this).style("cursor", "grab");
-
 					d3.event.preventDefault();
 					return false;
 				}
 			}
 
 			function node_over(d, i) {
-				var node_group = d3.select(this);
+				if (hovering === undefined) {
+					var node_group = d3.select(this);
 
-				if (!(d.name === "OR" || d.name === "XOR")) {
-					node_group.select(".node_label")
-					.transition()
-					  .attr("y", (Troncola.font_size - graph.nodes[i].height) / 2);
+					if (!(d.name === "OR" || d.name === "XOR")) {
+						node_group.select(".node_label")
+						.transition()
+						  .attr("y", (Troncola.font_size - graph.nodes[i].height) / 2);
 
-					/*node_group.select(".node_anchor")
+						/*node_group.select(".node_anchor")
+						.transition()
+						  .attr("y", (graph.nodes[i].height) / 2)
+						  .each("end", function() {
+							d3.select(this).style("visibility", "visible");
+						  });*/
+					}
+					  
+					node_group.select(".node_desc")
+					  .style("visibility", "visible")
 					.transition()
-					  .attr("y", (graph.nodes[i].height) / 2)
-					  .each("end", function() {
-						d3.select(this).style("visibility", "visible");
-					  });*/
+					  .style("font-size", Troncola.font_size + "px");
+					  
+					node_group.select(".node")
+					.transition()
+					  .attr({
+						"rx": d.width * Troncola.scale_factor * hover_factor,
+						"ry": d.height * Troncola.scale_factor * hover_factor
+					  });
+					hovering = d.id;
 				}
-				  
-				node_group.select(".node_desc")
-				  .style("visibility", "visible")
-				.transition()
-				  .style("font-size", Troncola.font_size + "px");
-				  
-				node_group.select(".node")
-				.transition()
-				  .attr({
-					"rx": d.width * Troncola.scale_factor * hover_factor,
-					"ry": d.height * Troncola.scale_factor * hover_factor
-				  });
 			}
 
 			function node_out(d, i) {
-				var node_group = d3.select(this);
+				if (hovering === d.id) {
+					var node_group = d3.select(this);
 
-				node_group.select(".node_label")
-				.transition()
-				  .attr("y", Troncola.font_size / 2);
+					node_group.select(".node_label")
+					.transition()
+					  .attr("y", Troncola.font_size / 2);
 
-				/*node_group.select(".node_anchor")
-				.transition()
-				  .attr("y", "0")
-				  .style("visibility", "hidden");*/
-				  
-				node_group.select(".node_desc")
-				.transition()
-				  .style("font-size", "0px")
-				  .each("end", function() {
-					  d3.select(this).style({
-						"visibility": "hidden"
+					/*node_group.select(".node_anchor")
+					.transition()
+					  .attr("y", "0")
+					  .style("visibility", "hidden");*/
+					  
+					node_group.select(".node_desc")
+					.transition()
+					  .style("font-size", "0px")
+					  .each("end", function() {
+						  d3.select(this).style({
+							"visibility": "hidden"
+						  });
 					  });
-				  });
-				  
-				node_group.select(".node").transition()
-				  .attr({
-					"rx": d.width * Troncola.scale_factor,
-					"ry": d.height * Troncola.scale_factor
-				  });
+					  
+					node_group.select(".node").transition()
+					  .attr({
+						"rx": d.width * Troncola.scale_factor,
+						"ry": d.height * Troncola.scale_factor
+					  });
 
-				if (dragging) {
+					hovering = undefined;
+				}
+				if (dragging === d.id) {
 					stop_drag.call(this, d, i);
 				}
 			}
@@ -412,7 +434,7 @@
 				graph_width = d3.max(graph.nodes, function(d) { return d.x + d.width * Troncola.scale_factor; }) - graph_x;
 				graph_height = d3.max(graph.nodes, function(d) { return d.y + d.height * Troncola.scale_factor; }) - graph_y;
 
-			// SVG & defs
+			// SVG & Defs
 			
 				var svg = d3.select("body")
 				.append("svg")
@@ -529,9 +551,10 @@
 				.enter().append("g")
 				  .attr({
 					  "class": "node_group",
-					  "cursor": "grab",
-					  "transform": function(d) { return "translate(" + d.x + ", " + d.y + ")"; }
-				  });
+					  "transform": function(d) { 
+					  	return "translate(" + d.x + ", " + d.y + ")"; }
+				  })
+				  .style("cursor", "grab");
 				
 				var nodes = node_groups
 				.append("ellipse")
@@ -656,13 +679,19 @@
 				  .text("Cancel")
 				  .on("click", hide_contextmenu);
 
-
-				node_groups.on("mouseover", node_over);
-				node_groups.on("mouseout", node_out);
 				node_groups.on("mousedown", start_drag);
 				node_groups.on("mousemove", keep_drag);
 				node_groups.on("mouseup", stop_drag);
 				node_groups.on("contextmenu", show_contextmenu);
+				node_groups.on("mouseover", node_over);
+				node_groups.on("mouseout", node_out);
+
+				//prova mobile
+				node_groups.on("touchstart", start_drag);
+				node_groups.on("touchmove", keep_drag);
+				node_groups.on("touchend", stop_drag);
+				node_groups.on("touchenter", node_over);
+				node_groups.on("touchleave", node_out);
 			});
 		}
 	};
