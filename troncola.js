@@ -77,7 +77,7 @@
 			function start_drag(d, i) {
 				if (!dragging)
 				{
-					//console.log("start drag at " + d.id);
+					console.log("start drag at " + d.id);
 					if (d3.event.type === "mousedown") {
 						drag_x = d3.event.clientX;
 						drag_y = d3.event.clientY;
@@ -85,13 +85,6 @@
 						drag_x = d3.event.touches[0].clientX;
 						drag_y = d3.event.touches[0].clientY;
 					}
-					var coords = d3.select(this).attr("transform"), dx, dy;
-					coords = coords.substring(coords.indexOf("(") + 1);
-					dx = + coords.substring(0, coords.indexOf(",")) - d.x;
-					dy = + coords.substring(coords.indexOf(" ") + 1, coords.indexOf(")")) - d.y;
-
-					drag_x -= dx;
-					drag_y -= 1.5 * dy;
 
 					d3.select(this).style("cursor", "grabbing");
 					d3.event.preventDefault();
@@ -103,28 +96,24 @@
 			function keep_drag(d, i) {
 				if (dragging === d.id)
 				{
-					var node = d3.select(this), dx, dy;
+					var node = d3.select(this), dx = 0, dy = 0;
 
 					if (d3.event.type === "mousemove") {
-						dx = Math.floor(d3.event.clientX - drag_x);
-						dy = Math.floor(d3.event.clientY - drag_y);
+						dx = d3.event.clientX - drag_x;
+						dy = d3.event.clientY - drag_y;
 					} else if (d3.event.type === "touchmove") {
-						dx = Math.floor(d3.event.touches[0].clientX - drag_x);
-						dy = Math.floor(d3.event.touches[0].clientY - drag_y);
+						dx = d3.event.touches[0].clientX - drag_x;
+						dy = d3.event.touches[0].clientY - drag_y;
 					}
-
-					console.log("prima(" + d.x + ", " + d.y + ") - delta(" + dx + ", " + dy + ")");
 
 					d.x += dx;
 					d.y += dy;
-
-					//console.log("dragging - delta = (" + dx + ", " + dy + ")");
-
-					node.attr("transform", "translate(" + d.x + ", " + d.y + ")");
 					drag_x += dx;
 					drag_y += dy;
-					console.log(d3.select(this).attr("transform") + " - data(" + d.x + ", " + d.y + ") - delta(" + dx + ", " + dy + ")");
 
+					console.log("dragging at " + d.id);
+					node.attr("transform", "translate(" + d.x + ", " + d.y + ")");
+					
 					// update only nodes wich has source or target === this
 					d3.selectAll(".edge_group")[0].forEach(function(e) {
 						edge = d3.select(e).select(".edge");
@@ -153,10 +142,8 @@
 			function stop_drag(d, i) {
 				if (dragging === d.id)
 				{
-					//console.log("stop drag at " + d.id);
+					console.log("stop drag at " + d.id);
 					dragging = undefined;
-					drag_x = 0;
-					drag_y = 0;
 					d3.select(this).style("cursor", "grab");
 					d3.event.preventDefault();
 					return false;
@@ -317,7 +304,8 @@
 				  .links(graph.edges)
 				  .flowLayout("y", node_hh * 2.5)
 				  .symmetricDiffLinkLengths(node_hw * 1.5)
-				  .start(50, 15, 5);
+				  .start(50, 15, 5)
+				  .stop();
 				
 				//d3cola.on("tick", function() {} );
 
