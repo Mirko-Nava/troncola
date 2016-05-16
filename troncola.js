@@ -144,6 +144,8 @@
 				{
 					console.log("stop drag at " + d.id);
 					dragging = undefined;
+					drag_x = 0;
+					drag_y = 0;
 					d3.select(this).style("cursor", "grab");
 					d3.event.preventDefault();
 					return false;
