@@ -77,7 +77,7 @@
 			function start_drag(d, i) {
 				if (!dragging)
 				{
-					console.log("start drag at " + d.id);
+					//console.log("start drag at " + d.id);
 					if (d3.event.type === "mousedown") {
 						drag_x = d3.event.clientX;
 						drag_y = d3.event.clientY;
@@ -85,10 +85,17 @@
 						drag_x = d3.event.touches[0].clientX;
 						drag_y = d3.event.touches[0].clientY;
 					}
-					console.log("(" + drag_x + ", " + drag_y + ")");
-					dragging = d.id;
+					var coords = d3.select(this).attr("transform"), dx, dy;
+					coords = coords.substring(coords.indexOf("(") + 1);
+					dx = + coords.substring(0, coords.indexOf(",")) - d.x;
+					dy = + coords.substring(coords.indexOf(" ") + 1, coords.indexOf(")")) - d.y;
+
+					drag_x -= dx;
+					drag_y -= 1.5 * dy;
+
 					d3.select(this).style("cursor", "grabbing");
 					d3.event.preventDefault();
+					dragging = d.id;
 					return false;
 				}
 			}
@@ -106,6 +113,8 @@
 						dy = Math.floor(d3.event.touches[0].clientY - drag_y);
 					}
 
+					console.log("prima(" + d.x + ", " + d.y + ") - delta(" + dx + ", " + dy + ")");
+
 					d.x += dx;
 					d.y += dy;
 
@@ -114,7 +123,7 @@
 					node.attr("transform", "translate(" + d.x + ", " + d.y + ")");
 					drag_x += dx;
 					drag_y += dy;
-					console.log("(" + drag_x + ", " + drag_y + ")");
+					console.log(d3.select(this).attr("transform") + " - data(" + d.x + ", " + d.y + ") - delta(" + dx + ", " + dy + ")");
 
 					// update only nodes wich has source or target === this
 					d3.selectAll(".edge_group")[0].forEach(function(e) {
@@ -555,7 +564,7 @@
 				.enter().append("g")
 				  .attr({
 					  "class": "node_group",
-					  "transform": function(d) { 
+					  "transform": function(d) {
 					  	return "translate(" + d.x + ", " + d.y + ")"; }
 				  })
 				  .style("cursor", "grab");
