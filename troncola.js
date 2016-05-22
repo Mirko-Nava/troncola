@@ -77,7 +77,7 @@
 			function start_drag(d, i) {
 				if (!dragging)
 				{
-					console.log("start drag at " + d.id);
+					//console.log("start drag at " + d.id);
 					if (d3.event.type === "mousedown") {
 						drag_x = d3.event.clientX;
 						drag_y = d3.event.clientY;
@@ -111,7 +111,7 @@
 					drag_x += dx;
 					drag_y += dy;
 
-					console.log("dragging at " + d.id);
+					//console.log("dragging at " + d.id);
 					node.attr("transform", "translate(" + d.x + ", " + d.y + ")");
 					
 					// update only nodes wich has source or target === this
@@ -142,7 +142,7 @@
 			function stop_drag(d, i) {
 				if (dragging === d.id)
 				{
-					console.log("stop drag at " + d.id);
+					//console.log("stop drag at " + d.id);
 					dragging = undefined;
 					d3.select(this).style("cursor", "grab");
 					d3.event.preventDefault();
@@ -151,21 +151,12 @@
 			}
 
 			function node_over(d, i) {
-				if (hovering === undefined) {
+				if (hovering === undefined && !IsAnOperator(d.name)) {
 					var node_group = d3.select(this);
 
-					if (!(d.name === "OR" || d.name === "XOR")) {
-						node_group.select(".node_label")
-						.transition()
-						  .attr("y", (Troncola.font_size - graph.nodes[i].height) / 2);
-
-						/*node_group.select(".node_anchor")
-						.transition()
-						  .attr("y", (graph.nodes[i].height) / 2)
-						  .each("end", function() {
-							d3.select(this).style("visibility", "visible");
-						  });*/
-					}
+					node_group.select(".node_label")
+					.transition()
+					  .attr("y", (Troncola.font_size - graph.nodes[i].height) / 2);
 					  
 					node_group.select(".node_desc")
 					  .style("visibility", "visible")
@@ -178,23 +169,19 @@
 						"rx": d.width * Troncola.scale_factor * hover_factor,
 						"ry": d.height * Troncola.scale_factor * hover_factor
 					  });
+
 					hovering = d.id;
 				}
 			}
 
 			function node_out(d, i) {
-				if (hovering === d.id) {
+				if (hovering === d.id  && !IsAnOperator(d.name)) {
 					var node_group = d3.select(this);
 
 					node_group.select(".node_label")
 					.transition()
 					  .attr("y", Troncola.font_size / 2);
 
-					/*node_group.select(".node_anchor")
-					.transition()
-					  .attr("y", "0")
-					  .style("visibility", "hidden");*/
-					  
 					node_group.select(".node_desc")
 					.transition()
 					  .style("font-size", "0px")
@@ -215,18 +202,6 @@
 				if (dragging === d.id) {
 					stop_drag.call(this, d, i);
 				}
-			}
-			
-			function edge_over(d, i) {
-				d3.select(this).select(".edge_label_bg")
-				.transition()
-				  .style("fill", "#FFFF00");
-			}
-			
-			function edge_out(d, i) {
-				d3.select(this).select(".edge_label_bg")
-				.transition()
-				  .style("fill", "#FFFFFF");
 			}
 			
 		// Generazione grafico
@@ -306,8 +281,6 @@
 				  .symmetricDiffLinkLengths(node_hw * 1.5)
 				  .start(50, 15, 5)
 				  .stop();
-				
-				//d3cola.on("tick", function() {} );
 
 				graph.nodes.forEach(function (n) {
 					n.width /= hover_factor * 0.66;
@@ -351,7 +324,7 @@
 				});
 			}
 
-			function arrayObjectIndexOf(myArray, property, searchTerm) {	// ritorna l'indice dell'elemento che ha la proprietà === valore
+			function arrayObjectIndexOf(myArray, property, searchTerm) {	
 				for(var i = 0, len = myArray.length; i < len; i++) {
 					if (myArray[i][property] === searchTerm) return i;
 				}
@@ -373,8 +346,12 @@
 
 				return url;
 			}
+
+			function IsAnOperator(name) {
+				return name === "OR" || name === "XOR" || name === "AND";
+			}
 			
-		// Codice
+		// Code
 			
 			d3.xml(filename, function(error, data) {
 				if (error || data === null) {
@@ -459,7 +436,7 @@
 						(-graph_y + node_hh * hover_factor) + ")"
 				  });
 				
-			// Edge	
+			// Edges
 			
 				var edge_groups = svg.selectAll(".edge_group")	// creo un gruppo che conterra tutti gli el. dell' edge
 				  .data(graph.edges)
@@ -487,65 +464,8 @@
 									},
 					"stroke-dasharray": function(d) { if (d.line === "Dash") return "5,5"; }
 				  });
-				
-				/*var edge_label_groups = edge_groups
-				.append("g")
-				  .attr({
-					"class": "edge_label_group"
-				  });
-				
-				var edge_label_bgs = edge_label_groups
-				.append("rect")
-				  .attr({
-					"class": "edge_label_bg"
-				  })
-				  .style({
-					"fill": "#FFFFFF"//, //todo: enable
-					//"visibility": function(d) { if (d.label) return "visible"; else return "hidden"; }
-				  });
-				
-				var edge_labels = edge_label_groups
-				.append("text")
-				  .text(function(d) { if (d.label) return d.label; else return "Edge"; })
-				  .attr({
-					  "class": "edge_label",
-					  "x": function(d) {
-								return (d.source.x + d.target.x) / 2;
-							},
-					  "y": function(d) {
-								return (Troncola.font_size + d.source.y + d.target.y) / 2;
-							}
-				  })
-				  .style({
-					"fill": function(d) { if (d.fontcolor) return d.fontcolor; else return d.color; },
-					"text-anchor": "middle",
-					"font-size": function(d) {
-									if (d.fontsize) return d.fontsize + "px"; else return Troncola.font_size + "px";
-								},
-					"font-family": Troncola.label_font_name//, //todo: enable
-					//"visibility": function(d) { if (d.label) return "visible"; else return "hidden"; }
-				  });
-				  
-				edge_label_bgs.attr({
-				  "x": function(d, i) {
-							return edge_labels[0][i].getBBox().x - 1;
-						},
-				  "y": function(d) {
-							return (d.source.y + d.target.y - Troncola.font_size) / 2;
-						},
-				  "width": function(d, i) { 
-							return edge_labels[0][i].getBBox().width + 1;
-						},
-				  "height":function(d, i) { 
-							return edge_labels[0][i].getBBox().height + 1;
-						}
-				  });
-				  
-				edge_groups.on("mouseover", edge_over);
-				edge_groups.on("mouseout", edge_out);
-				*/
-				
-			// Node
+
+			// Nodes
 				
 				var node_groups = svg.selectAll(".node_group")	// creo un gruppo che conterra tutti gli el. del nodo
 				  .data(graph.nodes)
@@ -559,6 +479,7 @@
 				
 				var nodes = node_groups
 				.append("ellipse")
+				.filter(function(d) { return !IsAnOperator(d.name); })
 				  .attr({
 					"class": "node",
 					"rx": function(d) { return d.width * Troncola.scale_factor; },
@@ -574,6 +495,7 @@
 				
 				var node_hrefs = node_groups
 				.append("a")
+				.filter(function(d) { return !IsAnOperator(d.name); })
 				  .attr({
 				  	"class": "label_link",
 				  	"xlink:title": function(d) { return "NCBI Gene " + d.label; },
@@ -595,28 +517,11 @@
 					"font-size": Troncola.font_size + "px",
 					"font-family": Troncola.label_font_name
 				  });
-
-				/*var node_anchors = node_groups
-				.append("rect")
-				  .attr({
-				  	"class": "node_anchor",
-				  	"x": - Troncola.font_size / 2,
-				  	"width": Troncola.font_size,
-				  	"height": Troncola.font_size
-				  })
-				  .style({
-				  	"cursor": "grab",
-				  	"fill": "#FFFF00",
-				  	"stroke": "#000000",
-				  	"stroke-width": "1px",
-				  	"visibility": "hidden"
-				  });*/
 				
 				var node_descs = node_groups
 				.append("text")
-				  .text(function(d) {
-							if (d.name === "OR" || d.name === "XOR") return d.name; else return d.type;
-						})
+				.filter(function(d) { return !IsAnOperator(d.name); })
+				  .text(function(d) {return d.type; })
 				  .attr({
 					"class": "node_desc",
 					"x": "0",
@@ -628,6 +533,45 @@
 					"font-size": "0px",
 					"font-family": Troncola.desc_font_name,
 					"visibility": "hidden"
+				  });
+
+			// Operators
+
+				var operators = node_groups
+				.append("polygon")
+				.filter(function(d) { return IsAnOperator(d.name); })
+				  .attr({
+				  	"class": "operator",
+				  	"points": function(d) {
+				  				var l = d.width * Troncola.scale_factor;
+				  				return "0," + -l + " " + l + ",0 0," + l + " " + -l + ",0";	// 0,-l l,0 0,l -l,0
+				  			}
+				  })
+				  .style({
+				  	"fill": function(d) { return d.fillcolor; },
+					"stroke": function(d) { return d.bordercolor; },
+					"stroke-width": function(d) { return d.borderwidth; }
+				  });
+
+				var operator_symbols = node_groups
+				.append("path")
+				.filter(function(d) { return IsAnOperator(d.name); })
+				  .attr({
+				  	"class": "operator_symbol",
+				  	"d": function(d) {
+				  		var l = "" + (d.width * Troncola.scale_factor - 10);
+
+				  		switch (d.name) {
+				  			case "OR": return "m "+-l+",0 a "+l+","+l+" 0 1,0 "+2*l+",0 a "+l+","+l+" 0 1,0 "+-2*l+",0";
+				  			case "XOR": return "m "+l+","+l+" l "+-2*l+","+-2*l+" m "+2*l+",0 l "+-2*l+","+2*l;
+				  			case "AND": return "m 0,"+-l+" l 0,"+2*l+" m "+-l+","+-l+" l "+2*l+",0";
+				  		}
+				  	}
+				  })
+				  .style({
+				  	"fill": "none",
+					"stroke": "#000000",
+					"stroke-width": "3"
 				  });
 
 			// Context menu
@@ -686,14 +630,6 @@
 				node_groups.on("contextmenu", show_contextmenu);
 				node_groups.on("mouseover", node_over);
 				node_groups.on("mouseout", node_out);
-
-				//prova mobile
-				node_groups.on("touchstart", start_drag);
-				node_groups.on("touchmove", keep_drag);
-				node_groups.on("touchend", stop_drag);
-				node_groups.on("touchenter", node_over);
-				node_groups.on("touchleave", node_out);
-				node_groups.on("touchcancel", node_out);
 			});
 		}
 	};
