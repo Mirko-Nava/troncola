@@ -175,7 +175,7 @@
 			}
 
 			function node_out(d, i) {
-				if (hovering === d.id  && !IsAnOperator(d.name)) {
+				/*if (hovering === d.id  && !IsAnOperator(d.name)) {
 					var node_group = d3.select(this);
 
 					node_group.select(".node_label")
@@ -198,7 +198,7 @@
 					  });
 
 					hovering = undefined;
-				}
+				}*/
 				if (dragging === d.id) {
 					stop_drag.call(this, d, i);
 				}
@@ -414,7 +414,7 @@
 
 			// SVG & Defs
 			
-				var svg = d3.select("body")
+				var svg = d3.select(".graph_container")
 				.append("svg")
 				  .attr({
 					"class": "graph",
@@ -575,7 +575,7 @@
 				  });
 
 			// Context menu
-
+				/*
 				d3.select("body")
 				.append("div")
 				  .attr({
@@ -623,13 +623,18 @@
 				  })
 				  .text("Cancel")
 				  .on("click", hide_contextmenu);
+				*/
 
 				node_groups.on("mousedown", start_drag);
 				node_groups.on("mousemove", keep_drag);
 				node_groups.on("mouseup", stop_drag);
-				node_groups.on("contextmenu", show_contextmenu);
-				node_groups.on("mouseover", node_over);
+				//node_groups.on("contextmenu", show_contextmenu);
+				//node_groups.on("mouseover", node_over);
 				node_groups.on("mouseout", node_out);
+
+			// Side Bar
+
+				var side_bar = d3.select(".side_bar");
 			});
 		}
 	};
