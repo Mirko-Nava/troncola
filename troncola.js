@@ -30,70 +30,73 @@
 		"draw_graph": function(filename) {
 			
 		// Eventi
-		
-			function show_contextmenu(d, i) {
-				var context_menu = d3.select("#context_menu"),
-					mouse_pos = d3.mouse(document.body);
 
-				context_menu
-				  .attr({
-					"width": "auto",
-					"height": "auto"
-				  })
-				  .style({
-				  	"left": mouse_pos[0] + "px",
-				  	"top": mouse_pos[1] + "px",
-				  	"visibility": "visible"
-				  });
-
-				context_menu.select("a")
-				  .text("Goto NCBI Gene " + d.name)
-				  .attr("href", NCBIGeneQueryURL(d.name, "human"))
-				  .style("visibility", "visible");
-
-				context_menu.select("p")
-				  .style("visibility", "visible");
-
-				d3.event.preventDefault();
-				d3.event.stopPropagation();
-				return false;
+			function svg_drag_start() {
+				if (!dragging)
+				{
+					//console.log("start drag at svg");
+					if (d3.event.type === "mousedown") {
+						drag_x = d3.event.clientX;
+						drag_y = d3.event.clientY;
+					}
+					dragging = "SVG";
+				}
 			}
 
-			function hide_contextmenu(d, i) {
-				var context_menu = d3.select("#context_menu")
-				  .attr({
-					"width": "0px",
-					"height": "0px" 
-				  })
-				  .style("visibility", "hidden");
+			function svg_dragging() {
+				if (dragging === "SVG")
+				{
+					console.log("dragging at svg");
 
-				context_menu.select("a")
-				  .style("visibility", "hidden");
+					var svg = d3.select(".graph").select("g"), dx = 0, dy = 0;
 
-				context_menu.select("p")
-				  .style("visibility", "hidden");
+					if (d3.event.type === "mousemove") {
+						dx = d3.event.clientX - drag_x;
+						dy = d3.event.clientY - drag_y;
+					}
+
+					graph_x -= dx;
+					graph_y -= dy;
+					drag_x += dx;
+					drag_y += dy;
+
+					svg.attr("transform", "translate(" + 
+						(-graph_x + node_hw * hover_factor) + ", " +
+						(-graph_y + node_hh * hover_factor) + ")"
+				 	  );
+				}
 			}
 
-			function start_drag(d, i) {
+			function svg_drag_stop() {
+				if (dragging === "SVG")
+				{
+					//console.log("stop drag at svg");
+					dragging = undefined;
+				}
+			}
+
+			function svg_out() {
+				if (dragging === "SVG") {
+					svg_drag_stop.call(this);
+				}
+			}
+
+			function node_drag_start(d) {
 				if (!dragging)
 				{
 					//console.log("start drag at " + d.id);
 					if (d3.event.type === "mousedown") {
 						drag_x = d3.event.clientX;
 						drag_y = d3.event.clientY;
-					} else if (d3.event.type === "touchstart") {
-						drag_x = d3.event.touches[0].clientX;
-						drag_y = d3.event.touches[0].clientY;
 					}
 
 					d3.select(this).style("cursor", "grabbing");
 					d3.event.preventDefault();
 					dragging = d.id;
-					return false;
 				}
 			}
 
-			function keep_drag(d, i) {
+			function node_dragging(d) {
 				if (dragging === d.id)
 				{
 					var node = d3.select(this), dx = 0, dy = 0;
@@ -101,9 +104,6 @@
 					if (d3.event.type === "mousemove") {
 						dx = d3.event.clientX - drag_x;
 						dy = d3.event.clientY - drag_y;
-					} else if (d3.event.type === "touchmove") {
-						dx = d3.event.touches[0].clientX - drag_x;
-						dy = d3.event.touches[0].clientY - drag_y;
 					}
 
 					d.x += dx;
@@ -135,72 +135,22 @@
 					});
 
 					d3.event.preventDefault();
-					return false;
 				}
 			}
 
-			function stop_drag(d, i) {
+			function node_drag_stop(d) {
 				if (dragging === d.id)
 				{
 					//console.log("stop drag at " + d.id);
 					dragging = undefined;
 					d3.select(this).style("cursor", "grab");
 					d3.event.preventDefault();
-					return false;
 				}
 			}
 
-			function node_over(d, i) {
-				if (hovering === undefined && !IsAnOperator(d.name)) {
-					var node_group = d3.select(this);
-
-					node_group.select(".node_label")
-					.transition()
-					  .attr("y", (Troncola.font_size - graph.nodes[i].height) / 2);
-					  
-					node_group.select(".node_desc")
-					  .style("visibility", "visible")
-					.transition()
-					  .style("font-size", Troncola.font_size + "px");
-					  
-					node_group.select(".node")
-					.transition()
-					  .attr({
-						"rx": d.width * Troncola.scale_factor * hover_factor,
-						"ry": d.height * Troncola.scale_factor * hover_factor
-					  });
-
-					hovering = d.id;
-				}
-			}
-
-			function node_out(d, i) {
-				/*if (hovering === d.id  && !IsAnOperator(d.name)) {
-					var node_group = d3.select(this);
-
-					node_group.select(".node_label")
-					.transition()
-					  .attr("y", Troncola.font_size / 2);
-
-					node_group.select(".node_desc")
-					.transition()
-					  .style("font-size", "0px")
-					  .each("end", function() {
-						  d3.select(this).style({
-							"visibility": "hidden"
-						  });
-					  });
-					  
-					node_group.select(".node").transition()
-					  .attr({
-						"rx": d.width * Troncola.scale_factor,
-						"ry": d.height * Troncola.scale_factor
-					  });
-
-					hovering = undefined;
-				}*/
+			function node_out(d) {
 				if (dragging === d.id) {
-					stop_drag.call(this, d, i);
+					node_drag_stop.call(this, d);
 				}
 			}
 			
@@ -414,7 +364,14 @@
 
 			// SVG & Defs
 			
-				var svg = d3.select(".graph_container")
+				var container =  d3.select("#graph_container");
+
+				container.on("mousedown", svg_drag_start);
+				container.on("mousemove", svg_dragging);
+				container.on("mouseup", svg_drag_stop);
+				container.on("mouseout", svg_out);
+
+				var svg = container
 				.append("svg")
 				  .attr({
 					"class": "graph",
@@ -424,28 +381,27 @@
 					"xmlns:xlink": "http://www.w3.org/1999/xlink",
 					"version": "1.1"
 				  });
-				  
+
 				var defs = svg.append("defs");
 				gen_markers(defs, graph);		// genero le punte delle frecce
 
 				svg = svg 
 				.append("g")
-				  .attr({
-					"transform": "translate(" + 
+				  .attr("transform", "translate(" + 
 						(-graph_x + node_hw * hover_factor) + ", " +
 						(-graph_y + node_hh * hover_factor) + ")"
-				  });
+				  );
 				
 			// Edges
 			
-				var edge_groups = svg.selectAll(".edge_group")	// creo un gruppo che conterra tutti gli el. dell' edge
+				var edge_groups = svg.selectAll(".edge_group")
 				  .data(graph.edges)
 				.enter().append("g")
 				  .attr({
 					  "class": "edge_group"
 				  });
 				
-				var edges = edge_groups	// creo gli oggetti edge
+				var edges = edge_groups
 				.append("line")
 				  .attr({
 					"class": "edge",
@@ -467,7 +423,7 @@
 
 			// Nodes
 				
-				var node_groups = svg.selectAll(".node_group")	// creo un gruppo che conterra tutti gli el. del nodo
+				var node_groups = svg.selectAll(".node_group")
 				  .data(graph.nodes)
 				.enter().append("g")
 				  .attr({
@@ -493,7 +449,7 @@
 					"stroke-width": function(d) { return d.borderwidth; }
 				  });
 				
-				var node_hrefs = node_groups
+				/*var node_hrefs = node_groups
 				.append("a")
 				.filter(function(d) { return !IsAnOperator(d.name); })
 				  .attr({
@@ -502,8 +458,9 @@
 				  	"xlink:href": function(d) { return NCBIGeneQueryURL(d.label, "human"); },
 				  	"target": "_blank"
 				  });
+				*/
 
-				var node_labels = node_groups.selectAll(".label_link")
+				var node_labels = node_groups//.selectAll(".label_link")
 				.append("text")
 				  .text(function(d) { return d.label; })
 				  .attr({
@@ -517,23 +474,11 @@
 					"font-size": Troncola.font_size + "px",
 					"font-family": Troncola.label_font_name
 				  });
-				
-				var node_descs = node_groups
-				.append("text")
-				.filter(function(d) { return !IsAnOperator(d.name); })
-				  .text(function(d) {return d.type; })
-				  .attr({
-					"class": "node_desc",
-					"x": "0",
-					"y": Troncola.font_size / 2
-				  })
-				  .style({
-					"fill": "#000000",
-					"text-anchor": "middle",
-					"font-size": "0px",
-					"font-family": Troncola.desc_font_name,
-					"visibility": "hidden"
-				  });
+
+				node_groups.on("mousedown", node_drag_start);
+				node_groups.on("mousemove", node_dragging);
+				node_groups.on("mouseup", node_drag_stop);
+				node_groups.on("mouseout", node_out);
 
 			// Operators
 
@@ -543,8 +488,8 @@
 				  .attr({
 				  	"class": "operator",
 				  	"points": function(d) {
-				  				var l = d.width * Troncola.scale_factor;
-				  				return "0," + -l + " " + l + ",0 0," + l + " " + -l + ",0";	// 0,-l l,0 0,l -l,0
+				  				var l = d.width * Troncola.scale_factor * 1.5; //todo: almeno è un po piu grosso
+				  				return "0," + -l + " " + l + ",0 0," + l + " " + -l + ",0"; // rombo di lato l
 				  			}
 				  })
 				  .style({
@@ -574,67 +519,10 @@
 					"stroke-width": "3"
 				  });
 
-			// Context menu
-				/*
-				d3.select("body")
-				.append("div")
-				  .attr({
-				  	"id": "context_menu",
-				  	"width": "0px",
-				  	"height": "0px"
-				  })
-				  .style({
-				  	"position": "absolute",
-				  	"left": "0",
-				  	"top": "0",
-				  	"padding": "3px",
-				  	"background-color": "#DDDDDD",
-				  	"border": "1px outset #000000",
-				  	"visibility": "hidden"
-				  });
-
-				var context_menu = d3.select("#context_menu");
-
-				context_menu
-				.append("a")
-				  .attr({
-				  	"href": "url",
-				  	"target": "_blank"
-				  })
-				  .style({
-				  	"color": "#000000",
-				  	"text-align": "center",
-				  	"text-decoration": "none",
-				  	"margin": "0px",
-				  	"visibility": "hidden"
-				  })
-				  .text("")
-				  .on("click", hide_contextmenu);
-
-				context_menu
-				.append("p")
-				  .style({
-				  	"cursor": "pointer",
-				  	"text-align": "center",
-				  	"margin": "0px",
-				  	"margin-top": "3px",
-				  	"border-top": "1px solid #AAAAAA",
-				  	"visibility": "hidden"
-				  })
-				  .text("Cancel")
-				  .on("click", hide_contextmenu);
-				*/
-
-				node_groups.on("mousedown", start_drag);
-				node_groups.on("mousemove", keep_drag);
-				node_groups.on("mouseup", stop_drag);
-				//node_groups.on("contextmenu", show_contextmenu);
-				//node_groups.on("mouseover", node_over);
-				node_groups.on("mouseout", node_out);
-
 			// Side Bar
 
-				var side_bar = d3.select(".side_bar");
+				var side_bar = d3.select("#side_bar");
+
 			});
 		}
 	};
