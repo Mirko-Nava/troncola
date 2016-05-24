@@ -41,6 +41,8 @@
 				scale_x += delta;
 				scale_y += delta;
 				svg.attr("viewBox", "0 0 " + (graph_width * scale_x) + " " + (graph_height * scale_y));
+
+				//todo: mouvere di delta / 2 il grafo per simulare uno zoom con origine in centro allo schermo
 			}
 
 			function svg_drag_start() {
@@ -67,8 +69,8 @@
 						dy = d3.event.clientY - drag_y;
 					}
 
-					graph_x -= dx;
-					graph_y -= dy;
+					graph_x -= dx * scale_x;
+					graph_y -= dy * scale_y;
 					drag_x += dx;
 					drag_y += dy;
 
@@ -76,6 +78,8 @@
 						(-graph_x + node_hw * hover_factor) + ", " +
 						(-graph_y + node_hh * hover_factor) + ")"
 				 	  );
+
+					d3.event.preventDefault();
 				}
 			}
 
@@ -93,14 +97,52 @@
 				}
 			}
 
+			function edge_selected(d) {
+				var title = "", desc = "", is_an_op = IsAnOperator(d.name);
+
+				title += "Edge tra " + d.source.name + " e " + d.target.name;
+				desc += "descrizione";
+
+				d3.select("#side_bar").select(".title").text(title);
+				d3.select("#side_bar").select(".desc").text(desc);
+			}
+
+			function edge_click(d) {
+				edge_selected(d);
+			}
+
 			function node_selected(d) {
 				var title = "", desc = "", is_an_op = IsAnOperator(d.name);
 
-				title += "<a href=\""+ NCBIGeneQueryURL(d.name, "human") +"\" target=\"_blank\">" + d.name + "</a>";
-				desc += "tipo: " + d.type + "\n";
+				if (is_an_op) {
+					title += d.name;
 
-				d3.select("#side_bar").select(".title").html(title);
-				d3.select("#side_bar").select(".desc").text(desc);
+					switch(d.name) {
+						case "OR": {
+							desc += "La causa è uno o più dei geni entranti";
+							break;
+						}
+						case "XOR": {
+							desc += "La causa è uno soltato tra i geni entranti";
+							break;
+						}
+						case "AND": {
+							desc += "Le cause sono tutti i geni entranti";
+							break;
+						}
+					}
+
+					d3.select("#side_bar").select(".title").text(title);
+					d3.select("#side_bar").select(".desc").text(desc);
+				} else {
+					title += "<a href=\""+ NCBIGeneQueryURL(d.name, "human") +"\" target=\"_blank\">" + d.name + "</a>";
+					desc += "tipo: " + d.type + "\n";
+
+					d3.select("#side_bar").select(".title").html(title);
+					d3.select("#side_bar").select(".desc").text(desc);	//todo: use text only if it is plain text
+				}
+
+				d3.event.preventDefault();
 			}
 
 			function node_drag_start(d) {
@@ -448,6 +490,8 @@
 									},
 					"stroke-dasharray": function(d) { if (d.line === "Dash") return "5,5"; }
 				  });
+
+				  edge_groups.on("click", edge_click);
 
 			// Nodes
 				
