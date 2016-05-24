@@ -35,8 +35,9 @@
 		// Eventi
 
 			function svg_wheel() {
+				//console.log("mouse wheel at svg");
+
 				var svg = d3.select(".graph"), delta = d3.event.deltaY / 100;
-					console.log("mouse wheel at svg " + delta);
 				scale_x += delta;
 				scale_y += delta;
 				svg.attr("viewBox", "0 0 " + (graph_width * scale_x) + " " + (graph_height * scale_y));
@@ -93,10 +94,12 @@
 			}
 
 			function node_selected(d) {
-				var title = d.name, desc = "";
+				var title = "", desc = "", is_an_op = IsAnOperator(d.name);
+
+				title += "<a href=\""+ NCBIGeneQueryURL(d.name, "human") +"\" target=\"_blank\">" + d.name + "</a>";
 				desc += "tipo: " + d.type + "\n";
 
-				d3.select("#side_bar").select(".title").text(title);
+				d3.select("#side_bar").select(".title").html(title);
 				d3.select("#side_bar").select(".desc").text(desc);
 			}
 
@@ -122,12 +125,12 @@
 					var node = d3.select(this), dx = 0, dy = 0;
 
 					if (d3.event.type === "mousemove") {
-						dx = (d3.event.clientX - drag_x) * scale_x;
-						dy = (d3.event.clientY - drag_y) * scale_y;
+						dx = d3.event.clientX - drag_x;
+						dy = d3.event.clientY - drag_y;
 					}
 
-					d.x += dx;
-					d.y += dy;
+					d.x += dx * scale_x;
+					d.y += dy * scale_y;
 					drag_x += dx;
 					drag_y += dy;
 
