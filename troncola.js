@@ -14,6 +14,8 @@
 	var hovering = undefined;			// ide del nodo in fase hovering
 	var drag_x = 0;						// x del mouse al frame precedente
 	var drag_y = 0;						// y del mouse al frame precendete
+	var scale_x = 1;
+	var scale_y = 1;
 
 	var font_size = 14;					// Dimensione font in px
 
@@ -21,7 +23,7 @@
 		
 // Variabili Pubbliche
 		
-		"scale_factor":		0.33,		// Fattore di scala per i nodi
+		"size_scale":		0.33,		// Fattore di scala per i nodi
 		"stroke_width":		2,			// Spessore linee
 		"label_font_name":	"arial",	// Font dei label dei nodi
 		"desc_font_name":	"courier",	// Font delle descrizioni dei nodi
@@ -31,6 +33,14 @@
 		"draw_graph": function(filename) {
 			
 		// Eventi
+
+			function svg_wheel() {
+				var svg = d3.select(".graph"), delta = d3.event.deltaY / 100;
+					console.log("mouse wheel at svg " + delta);
+				scale_x += delta;
+				scale_y += delta;
+				svg.attr("viewBox", "0 0 " + (graph_width * scale_x) + " " + (graph_height * scale_y));
+			}
 
 			function svg_drag_start() {
 				if (!dragging)
@@ -47,7 +57,7 @@
 			function svg_dragging() {
 				if (dragging === "SVG")
 				{
-					console.log("dragging at svg");
+					//console.log("dragging at svg");
 
 					var svg = d3.select(".graph").select("g"), dx = 0, dy = 0;
 
@@ -82,6 +92,14 @@
 				}
 			}
 
+			function node_selected(d) {
+				var title = d.name, desc = "";
+				desc += "tipo: " + d.type + "\n";
+
+				d3.select("#side_bar").select(".title").text(title);
+				d3.select("#side_bar").select(".desc").text(desc);
+			}
+
 			function node_drag_start(d) {
 				if (!dragging)
 				{
@@ -92,6 +110,7 @@
 					}
 
 					d3.select(this).style("cursor", "grabbing");
+					node_selected(d);
 					d3.event.preventDefault();
 					dragging = d.id;
 				}
@@ -103,8 +122,8 @@
 					var node = d3.select(this), dx = 0, dy = 0;
 
 					if (d3.event.type === "mousemove") {
-						dx = d3.event.clientX - drag_x;
-						dy = d3.event.clientY - drag_y;
+						dx = (d3.event.clientX - drag_x) * scale_x;
+						dy = (d3.event.clientY - drag_y) * scale_y;
 					}
 
 					d.x += dx;
@@ -353,15 +372,18 @@
 
 				graph = make_graph(data.querySelector("graph"), keys);	// genero il grafico con relativi attributi
 				
-				node_hw = d3.max(graph.nodes, function(d) { return d.width; }) * Troncola.scale_factor * 0.5;
-				node_hh = d3.max(graph.nodes, function(d) { return d.height; }) * Troncola.scale_factor * 0.5;
+				node_hw = d3.max(graph.nodes, function(d) { return d.width; }) * Troncola.size_scale * 0.5;
+				node_hh = d3.max(graph.nodes, function(d) { return d.height; }) * Troncola.size_scale * 0.5;
 
 				cola_position_graph(graph);		// posiziono i nodi con un certo criterio
 
-				graph_x = d3.min(graph.nodes, function(d) { return d.x - d.width * Troncola.scale_factor; });
-				graph_y = d3.min(graph.nodes, function(d) { return d.y - d.height * Troncola.scale_factor; });
-				graph_width = d3.max(graph.nodes, function(d) { return d.x + d.width * Troncola.scale_factor; }) - graph_x;
-				graph_height = d3.max(graph.nodes, function(d) { return d.y + d.height * Troncola.scale_factor; }) - graph_y;
+				graph_x = d3.min(graph.nodes, function(d) { return d.x - d.width * Troncola.size_scale; });
+				graph_y = d3.min(graph.nodes, function(d) { return d.y - d.height * Troncola.size_scale; });
+				graph_width = d3.max(graph.nodes, function(d) { return d.x + d.width * Troncola.size_scale; }) - graph_x;
+				graph_height = d3.max(graph.nodes, function(d) { return d.y + d.height * Troncola.size_scale; }) - graph_y;
+
+				graph_width += 2 * node_hw * hover_factor;
+				graph_height += 2 * node_hh * hover_factor;
 
 			// SVG & Defs
 			
@@ -371,13 +393,15 @@
 				container.on("mousemove", svg_dragging);
 				container.on("mouseup", svg_drag_stop);
 				container.on("mouseout", svg_out);
+				container.on("wheel", svg_wheel);
 
 				var svg = container
 				.append("svg")
 				  .attr({
 					"class": "graph",
-					"width": graph_width + 2 * (node_hw * hover_factor),
-					"height": graph_height + 2 * (node_hh * hover_factor),
+					"width": graph_width,
+					"height": graph_height,
+					"viewBox": "0 0 " + graph_width + " " + graph_height,
 					"xmlns": "http://www.w3.org/2000/svg",
 					"xmlns:xlink": "http://www.w3.org/1999/xlink",
 					"version": "1.1"
@@ -439,8 +463,8 @@
 				.filter(function(d) { return !IsAnOperator(d.name); })
 				  .attr({
 					"class": "node",
-					"rx": function(d) { return d.width * Troncola.scale_factor; },
-					"ry": function(d) { return d.height * Troncola.scale_factor; },
+					"rx": function(d) { return d.width * Troncola.size_scale; },
+					"ry": function(d) { return d.height * Troncola.size_scale; },
 					"cx": "0",
 					"cy": "0"
 				  })
@@ -489,7 +513,7 @@
 				  .attr({
 				  	"class": "operator",
 				  	"points": function(d) {
-				  				var l = d.width * Troncola.scale_factor * 1.5; //todo: almeno è un po piu grosso
+				  				var l = d.width * Troncola.size_scale * 1.5; //todo: almeno è un po piu grosso
 				  				return "0," + -l + " " + l + ",0 0," + l + " " + -l + ",0"; // rombo di lato l
 				  			}
 				  })
@@ -505,7 +529,7 @@
 				  .attr({
 				  	"class": "operator_symbol",
 				  	"d": function(d) {
-				  		var l = "" + (d.width * Troncola.scale_factor - 10);
+				  		var l = "" + (d.width * Troncola.size_scale - 10);
 
 				  		switch (d.name) {
 				  			case "OR": return "m "+-l+",0 a "+l+","+l+" 0 1,0 "+2*l+",0 a "+l+","+l+" 0 1,0 "+-2*l+",0";
