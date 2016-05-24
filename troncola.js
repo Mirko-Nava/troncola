@@ -15,13 +15,14 @@
 	var drag_x = 0;						// x del mouse al frame precedente
 	var drag_y = 0;						// y del mouse al frame precendete
 
+	var font_size = 14;					// Dimensione font in px
+
 	var Troncola = {
 		
 // Variabili Pubbliche
 		
 		"scale_factor":		0.33,		// Fattore di scala per i nodi
 		"stroke_width":		2,			// Spessore linee
-		"font_size":		14,			// Dimensione font in px
 		"label_font_name":	"arial",	// Font dei label dei nodi
 		"desc_font_name":	"courier",	// Font delle descrizioni dei nodi
 
@@ -466,12 +467,12 @@
 				  .attr({
 					  "class": "node_label",
 					  "x": "0",
-					  "y": Troncola.font_size / 2
+					  "y": font_size / 2
 				  })
 				  .style({
 					"fill": function(d) { return d.fontcolor; },
 					"text-anchor": "middle",
-					"font-size": Troncola.font_size + "px",
+					"font-size": font_size + "px",
 					"font-family": Troncola.label_font_name
 				  });
 
