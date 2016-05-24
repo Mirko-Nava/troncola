@@ -523,6 +523,16 @@
 
 				var side_bar = d3.select("#side_bar");
 
+				side_bar
+				.append("p")
+				  .text("Nessun nodo selezionato")
+				  .attr("class", "title");
+
+				side_bar
+				.append("p")
+				  .text("Clicca su un nodo per avere maggiori informazioni")
+				  .attr("class", "desc");
+
 			});
 		}
 	};
