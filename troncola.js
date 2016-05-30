@@ -24,7 +24,7 @@
 // Variabili Pubbliche
 		
 		"size_scale":		0.33,		// Fattore di scala per i nodi
-		"stroke_width":		2,			// Spessore linee
+		"stroke_width":		4,			// Spessore linee
 		"label_font_name":	"arial",	// Font dei label dei nodi
 		"desc_font_name":	"courier",	// Font delle descrizioni dei nodi
 
@@ -322,7 +322,7 @@
 					  .attr({
 						"id": "arrow-" + color.substring(1),
 						"viewBox": "0 -7 10 14",
-						"refX": 11 + node_hh * 4 / Troncola.stroke_width,
+						"refX": 10.5 + node_hh * 4 /  Troncola.stroke_width,
 						"refY": 0,
 						"markerWidth": 5,
 						"markerHeight": 7,
@@ -334,7 +334,7 @@
 					  .style({
 						  "fill": "none",
 						  "stroke": color,
-						  "stroke-width": Troncola.stroke_width + "px"
+						  "stroke-width": "2px"
 					  });
 				});
 			}
