@@ -1,6 +1,6 @@
-<Module>
-<ModulePrefs title="Troncola gadget"/>
-<Content type="html">
-<![CDATA[<link rel="stylesheet" type="text/css" href="style.css"><script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script><script src="https://rawgit.com/tgdwyer/WebCola/master/WebCola/cola.min.js" charset="utf-8"></script><script src="https://rawgit.com/Mirko-o/troncola/master/troncola.js" charset="utf-8"></script>]]>
-</Content>
-</Module>
+<Module> 
+<ModulePrefs title="Troncola gadget"/> 
+<Content type="html"> 
+<![CDATA[<link rel="stylesheet" type="text/css" href="style.css"><script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script><script src="https://rawgit.com/tgdwyer/WebCola/master/WebCola/cola.min.js" charset="utf-8"></script><script src="https://rawgit.com/Mirko-o/troncola/master/troncola.js" charset="utf-8"></script>]]> 
+</Content> 
+</Module> 
