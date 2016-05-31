@@ -2,21 +2,24 @@
 
 // Variabili Private
 
-	var d3cola = undefined;
-	var node_hw = undefined;			// metà altezza massima dei nodi
-	var node_hh = undefined;			// metà larghezza massima dei nodi
-	var graph_x = undefined;			// x del grafico
-	var graph_y = undefined;			// y del grafico
-	var graph_width = undefined;		// larghezza del grafico
-	var graph_height = undefined;		// altezza del grafico
-	var hover_factor = 2;				// fattore di scaling dei nodi on hover
-	var dragging = undefined;			// id del nodo in fase dragging
-	var hovering = undefined;			// ide del nodo in fase hovering
-	var drag_x = 0;						// x del mouse al frame precedente
-	var drag_y = 0;						// y del mouse al frame precendete
-	var scale_x = 1;
-	var scale_y = 1;
+	var reference_system = {
+		"x" : 0,
+		"y" : 0,
+		"width" : 0,
+		"height" : 0
+	};
 
+	var camera = {
+		"x" : 0,
+		"y" : 0,
+		"width" : 0,
+		"height" : 0,
+	}
+
+	var graph = undefined;				// Oggetto che rappresenta il grafo
+	var renderer = undefined;			// Oggetto che permette la stampa su canvas
+	var dragging = undefined;			// Id del nodo in fase dragging
+	var hovering = undefined;			// Id del nodo in fase hovering
 	var font_size = 14;					// Dimensione font in px
 
 	var Troncola = {
@@ -34,444 +37,38 @@
 			
 		// Eventi
 
-			function svg_wheel() {
-				//console.log("mouse wheel at svg");
-
-				var svg = d3.select(".graph"), delta = d3.event.deltaY / 100;
-				scale_x += delta;
-				scale_y += delta;
-				svg.attr("viewBox", "0 0 " + (graph_width * scale_x) + " " + (graph_height * scale_y));
-
-				//todo: mouvere di delta / 2 il grafo per simulare uno zoom con origine in centro allo schermo
+			function wheel(event) {
+				console.log("zoom " + event.wheelDelta);
+				camera.width += event.deltaX;
+				camera.height += event.deltaY;
+				draw();
 			}
 
-			function svg_drag_start() {
-				if (!dragging)
-				{
-					//console.log("start drag at svg");
-					if (d3.event.type === "mousedown") {
-						drag_x = d3.event.clientX;
-						drag_y = d3.event.clientY;
-					}
-					dragging = "SVG";
-				}
-			}
+		// Stampa grafico
 
-			function svg_dragging() {
-				if (dragging === "SVG")
-				{
-					//console.log("dragging at svg");
+			function draw() {
 
-					var svg = d3.select(".graph").select("g"), dx = 0, dy = 0;
-
-					if (d3.event.type === "mousemove") {
-						dx = d3.event.clientX - drag_x;
-						dy = d3.event.clientY - drag_y;
-					}
-
-					graph_x -= dx * scale_x;
-					graph_y -= dy * scale_y;
-					drag_x += dx;
-					drag_y += dy;
-
-					svg.attr("transform", "translate(" + 
-						(-graph_x + node_hw * hover_factor) + ", " +
-						(-graph_y + node_hh * hover_factor) + ")"
-				 	  );
-
-					d3.event.preventDefault();
-				}
-			}
-
-			function svg_drag_stop() {
-				if (dragging === "SVG")
-				{
-					//console.log("stop drag at svg");
-					dragging = undefined;
-				}
-			}
-
-			function svg_out() {
-				if (dragging === "SVG") {
-					svg_drag_stop.call(this);
-				}
-			}
-
-			function edge_selected(d) {
-				var title = "", desc = "", is_an_op = IsAnOperator(d.name);
-
-				title += "Edge tra " + d.source.name + " e " + d.target.name;
-				desc += "descrizione";
-
-				d3.select("#side_bar").select(".title").text(title);
-				d3.select("#side_bar").select(".desc").text(desc);
-			}
-
-			function edge_click(d) {
-				edge_selected(d);
-			}
-
-			function node_selected(d) {
-				var title = "", desc = "", is_an_op = IsAnOperator(d.name);
-
-				if (is_an_op) {
-					title += d.name;
-
-					switch(d.name) {
-						case "OR": {
-							desc += "La causa è uno o più dei geni entranti";
-							break;
-						}
-						case "XOR": {
-							desc += "La causa è uno soltato tra i geni entranti";
-							break;
-						}
-						case "AND": {
-							desc += "Le cause sono tutti i geni entranti";
-							break;
-						}
-					}
-
-					d3.select("#side_bar").select(".title").text(title);
-					d3.select("#side_bar").select(".desc").text(desc);
-				} else {
-					title += "<a href=\""+ NCBIGeneQueryURL(d.name, "human") +"\" target=\"_blank\">" + d.name + "</a>";
-					desc += "tipo: " + d.type + "\n";
-
-					d3.select("#side_bar").select(".title").html(title);
-					d3.select("#side_bar").select(".desc").text(desc);	//todo: use text only if it is plain text
+				function transform(m) {
+					renderer.transform(m.scalex, 0, 0, m.scaley, m.trasx, m.trasy);
 				}
 
-				d3.event.preventDefault();
-			}
-
-			function node_drag_start(d) {
-				if (!dragging)
-				{
-					//console.log("start drag at " + d.id);
-					if (d3.event.type === "mousedown") {
-						drag_x = d3.event.clientX;
-						drag_y = d3.event.clientY;
-					}
-
-					d3.select(this).style("cursor", "grabbing");
-					node_selected(d);
-					d3.event.preventDefault();
-					dragging = d.id;
-				}
-			}
-
-			function node_dragging(d) {
-				if (dragging === d.id)
-				{
-					var node = d3.select(this), dx = 0, dy = 0;
-
-					if (d3.event.type === "mousemove") {
-						dx = d3.event.clientX - drag_x;
-						dy = d3.event.clientY - drag_y;
-					}
-
-					d.x += dx * scale_x;
-					d.y += dy * scale_y;
-					drag_x += dx;
-					drag_y += dy;
-
-					//console.log("dragging at " + d.id);
-					node.attr("transform", "translate(" + d.x + ", " + d.y + ")");
-					
-					// update only nodes wich has source or target === this
-					d3.selectAll(".edge_group")[0].forEach(function(e) {
-						edge = d3.select(e).select(".edge");
-						if (edge.datum().source.id === node.datum().id) {
-							edge
-							  .attr({
-								"x1": d.x,
-								"y1": d.y
-							  });
-						}
-
-						if (edge.datum().target.id === node.datum().id) {
-							edge
-							  .attr({
-								"x2": d.x,
-								"y2": d.y
-							  });
-						}
-					});
-
-					d3.event.preventDefault();
-				}
-			}
-
-			function node_drag_stop(d) {
-				if (dragging === d.id)
-				{
-					//console.log("stop drag at " + d.id);
-					dragging = undefined;
-					d3.select(this).style("cursor", "grab");
-					d3.event.preventDefault();
-				}
-			}
-
-			function node_out(d) {
-				if (dragging === d.id) {
-					node_drag_stop.call(this, d);
-				}
-			}
-			
-		// Generazione grafico
-		
-			function make_graph(graph_tag, keys) {
-				var graph = {};
-				
-				var graph_attr = [].slice.call(graph_tag.querySelectorAll("data"))	// estraggo attributi del grafo
-				.filter(function(tag) {
-					return tag.parentElement.tagName === "graph";
-				});
-				
-				graph_attr.forEach(function(tag) {						// associo agli attributi del grafo i relativi valori
-					var key = keys.graph[tag.getAttribute("key")];
-					var value = tag.textContent;
-					if (key.type === "double")
-						value = +value;
-					graph[key.name] = value;
-				});
-				
-				var nodes = [].map.call(graph_tag.querySelectorAll("node"), function(tag) { // per ogni nodo
-					var node = {
-						"id": tag.getAttribute("id")
-					};
-					
-					var node_attr = [].slice.call(tag.querySelectorAll("data"));	// estraggo attributi del nodo
-
-					node_attr.forEach(function(tag) {					// associo agli attributi del nodo i relativi valori
-						var key = keys.node[tag.getAttribute("key")];
-						var value = tag.textContent;
-						if (key.type === "double")
-							value = +value;
-						node[key.name] = value;
-					});
-					
-					return node;
-				});
-				
-				var edges = [].map.call(graph_tag.querySelectorAll("edge"), function(tag) {	// per ogni arco
-					var edge = {
-						"source": arrayObjectIndexOf(nodes, "id", tag.getAttribute("source")),
-						"target": arrayObjectIndexOf(nodes, "id", tag.getAttribute("target"))
-					};
-					
-					var edge_attr = [].slice.call(tag.querySelectorAll("data"));	// estraggo attributi dell'arco
-
-					edge_attr.forEach(function(tag) {					// associo agli attributi dell'arco i relativi valori
-						var key = keys.edge[tag.getAttribute("key")];
-						var value = tag.textContent;
-						if (key.type === "double")
-							value = +value;
-						edge[key.name] = value;
-					});
-					
-					return edge;
-				});
-				
-				graph.nodes = nodes;
-				graph.edges = edges;
-				return graph;
-			}
-			
-			function cola_position_graph(graph) {
-				d3cola = cola.d3adaptor()
-				  .avoidOverlaps(true)
-				  .size([document.body.offsetWidth, document.body.offsetHeight]);
-
-				graph.nodes.forEach(function (n) {
-					n.width *= hover_factor * 0.66;
-					n.height *= hover_factor * 0.66;
-				})
-
-				d3cola
- 				  .nodes(graph.nodes)
-				  .links(graph.edges)
-				  .flowLayout("y", node_hh * 2.5)
-				  .symmetricDiffLinkLengths(node_hw * 1.5)
-				  .start(50, 15, 5)
-				  .stop();
-
-				graph.nodes.forEach(function (n) {
-					n.width /= hover_factor * 0.66;
-					n.height /= hover_factor * 0.66;
-				});
-			}
-			
-			function gen_markers(defs, graph) {
-				
-				var colors = [];	// array che contiene i possibili colori delle frecce
-				
-				//note: se utilizzo oggetti posso aggiungere anche frecce speciali (dashed, forme speciali, ...)
-				graph.edges.forEach(function(edge) {
-					if (edge.arrow === "True") {
-						var color = edge.color;
-						if (colors.indexOf(color) === -1) {
-							colors.push(color);
-						}
-					}
+				transform({
+					"scalex": reference_system.width / camera.width,
+					"scaley": reference_system.height / camera.height,
+					"trasx": -camera.x,
+					"trasy": -camera.y
 				});
 
-				colors.forEach(function(color) {	// creo freccia per ogni colore
-					defs.append("marker")
-					  .attr({
-						"id": "arrow-" + color.substring(1),
-						"viewBox": "0 -7 10 14",
-						"refX": 10.5 + node_hh * 4 /  Troncola.stroke_width,
-						"refY": 0,
-						"markerWidth": 5,
-						"markerHeight": 7,
-						"orient": "auto",
-						"markerUnits": "strokeWidth"
-					  })
-					.append("path")
-					  .attr("d", "M0,-7 L10,0 L0,7")
-					  .style({
-						  "fill": "none",
-						  "stroke": color,
-						  "stroke-width": "2px"
-					  });
-				});
-			}
-
-			function arrayObjectIndexOf(myArray, property, searchTerm) {	
-				for(var i = 0, len = myArray.length; i < len; i++) {
-					if (myArray[i][property] === searchTerm) return i;
-				}
-				return -1;
-			}
-
-			function NCBIGeneQueryURL(gene, organism) {
-				var url = "http://www.ncbi.nlm.nih.gov/gene/?term=";
-				
-				if (gene)
-				{
-					url += gene.split("_")[0] + "[SYM]";	// e.g.: gene "CBL_Ex_8_9" diventa "CBL", JARID_2 rinominato in JARID2
-				}
-				
-				if (organism)
-				{
-					url += organism + "[ORGN]";
-				}
-
-				return url;
-			}
-
-			function IsAnOperator(name) {
-				return name === "OR" || name === "XOR" || name === "AND";
-			}
-			
-		// Code
-			
-			d3.xml(filename, function(error, data) {
-				if (error || data === null) {
-					alert("Errore durante il caricamento del file \"" + filename + "\"");
-					return;
-				}
-				
-				var temp = [].map.call(data.querySelectorAll("key"), function(tag) {
-					return {
-						"id": tag.getAttribute("id"),
-						"for": tag.getAttribute("for"),
-						"name": tag.getAttribute("attr.name"),
-						"type": tag.getAttribute("attr.type")
-					};
-				});
-				
-				var keys = {		// keys conterrà le chiavi del documento xml, viene usato per generare gli attributi del grafico
-					"graph": {},
-					"node": {},
-					"edge": {}
-				};
-				
-				temp.forEach(function(key) {
-					switch (key.for) {
-						case "graph": {
-							keys.graph[key.id] = {
-								"name": key.name,
-								"type": key.type
-							}
-							break;
-						}
-						case "node": {
-							keys.node[key.id] = {
-								"name": key.name,
-								"type": key.type
-							}
-							break;
-						}
-						case "edge": {
-							keys.edge[key.id] = {
-								"name": key.name,
-								"type": key.type
-							}
-							break;
-						}
-					}
+				graph.edges.forEach(function(e) {
+					renderer.beginPath();
+					renderer.moveTo(e.source.x, e.source.y);
+					renderer.lineTo(e.target.x, e.target.y);
+					renderer.lineWidth = 15;
+					renderer.strokeStyle = "#FF0000";
+					renderer.stroke();
 				});
 
-				graph = make_graph(data.querySelector("graph"), keys);	// genero il grafico con relativi attributi
-				
-				node_hw = d3.max(graph.nodes, function(d) { return d.width; }) * Troncola.size_scale * 0.5;
-				node_hh = d3.max(graph.nodes, function(d) { return d.height; }) * Troncola.size_scale * 0.5;
-
-				cola_position_graph(graph);		// posiziono i nodi con un certo criterio
-
-				graph_x = d3.min(graph.nodes, function(d) { return d.x - d.width * Troncola.size_scale; });
-				graph_y = d3.min(graph.nodes, function(d) { return d.y - d.height * Troncola.size_scale; });
-				graph_width = d3.max(graph.nodes, function(d) { return d.x + d.width * Troncola.size_scale; }) - graph_x;
-				graph_height = d3.max(graph.nodes, function(d) { return d.y + d.height * Troncola.size_scale; }) - graph_y;
-
-				graph_width += 2 * node_hw * hover_factor;
-				graph_height += 2 * node_hh * hover_factor;
-
-			// SVG & Defs
-			
-				var container =  d3.select("#graph_container");
-
-				container.on("mousedown", svg_drag_start);
-				container.on("mousemove", svg_dragging);
-				container.on("mouseup", svg_drag_stop);
-				container.on("mouseout", svg_out);
-				container.on("wheel", svg_wheel);
-
-				var svg = container
-				.append("svg")
-				  .attr({
-					"class": "graph",
-					"width": graph_width,
-					"height": graph_height,
-					"viewBox": "0 0 " + graph_width + " " + graph_height,
-					"xmlns": "http://www.w3.org/2000/svg",
-					"xmlns:xlink": "http://www.w3.org/1999/xlink",
-					"version": "1.1"
-				  });
-
-				var defs = svg.append("defs");
-				gen_markers(defs, graph);		// genero le punte delle frecce
-
-				svg = svg 
-				.append("g")
-				  .attr("transform", "translate(" + 
-						(-graph_x + node_hw * hover_factor) + ", " +
-						(-graph_y + node_hh * hover_factor) + ")"
-				  );
-				
-			// Edges
-			
-				var edge_groups = svg.selectAll(".edge_group")
-				  .data(graph.edges)
-				.enter().append("g")
-				  .attr({
-					  "class": "edge_group"
-				  });
-				
-				var edges = edge_groups
+				/*var edges = edge_groups
 				.append("line")
 				  .attr({
 					"class": "edge",
@@ -521,17 +118,6 @@
 					"stroke-width": function(d) { return d.borderwidth; }
 				  });
 				
-				/*var node_hrefs = node_groups
-				.append("a")
-				.filter(function(d) { return !IsAnOperator(d.name); })
-				  .attr({
-				  	"class": "label_link",
-				  	"xlink:title": function(d) { return "NCBI Gene " + d.label; },
-				  	"xlink:href": function(d) { return NCBIGeneQueryURL(d.label, "human"); },
-				  	"target": "_blank"
-				  });
-				*/
-
 				var node_labels = node_groups//.selectAll(".label_link")
 				.append("text")
 				  .text(function(d) { return d.label; })
@@ -604,7 +190,199 @@
 				.append("p")
 				  .text("Clicca su un nodo per avere maggiori informazioni")
 				  .attr("class", "desc");
+*/
+			}
 
+		// Generazione grafico
+		
+			function make_graph(graph_tag, keys) {
+
+				function arrayObjectIndexOf(myArray, property, searchTerm) {	
+					for(var i = 0, len = myArray.length; i < len; i++) {
+						if (myArray[i][property] === searchTerm) return i;
+					}
+					return -1;
+				}
+
+				var graph = {};
+				
+				var graph_attr = [].slice.call(graph_tag.querySelectorAll("data"))	// estraggo attributi del grafo
+				.filter(function(tag) {
+					return tag.parentElement.tagName === "graph";
+				});
+				
+				graph_attr.forEach(function(tag) {						// associo agli attributi del grafo i relativi valori
+					var key = keys.graph[tag.getAttribute("key")];
+					var value = tag.textContent;
+					if (key.type === "double")
+						value = +value;
+					graph[key.name] = value;
+				});
+				
+				//todo: aggiungere is_op agli oggetti!
+				var nodes = [].map.call(graph_tag.querySelectorAll("node"), function(tag) { // per ogni nodo
+					var node = {
+						"id": tag.getAttribute("id")
+					};
+					
+					var node_attr = [].slice.call(tag.querySelectorAll("data"));	// estraggo attributi del nodo
+
+					node_attr.forEach(function(tag) {					// associo agli attributi del nodo i relativi valori
+						var key = keys.node[tag.getAttribute("key")];
+						var value = tag.textContent;
+						if (key.type === "double")
+							value = +value;
+						node[key.name] = value;
+					});
+					
+					return node;
+				});
+				
+				var edges = [].map.call(graph_tag.querySelectorAll("edge"), function(tag) {	// per ogni arco
+					var edge = {
+						"source": arrayObjectIndexOf(nodes, "id", tag.getAttribute("source")),
+						"target": arrayObjectIndexOf(nodes, "id", tag.getAttribute("target"))
+					};
+					
+					var edge_attr = [].slice.call(tag.querySelectorAll("data"));	// estraggo attributi dell'arco
+
+					edge_attr.forEach(function(tag) {					// associo agli attributi dell'arco i relativi valori
+						var key = keys.edge[tag.getAttribute("key")];
+						var value = tag.textContent;
+						if (key.type === "double")
+							value = +value;
+						edge[key.name] = value;
+					});
+					
+					return edge;
+				});
+				
+				graph.nodes = nodes;
+				graph.edges = edges;
+				return graph;
+			}
+			
+			function cola_position_graph(graph) {
+				var d3cola = cola.d3adaptor()
+				  .avoidOverlaps(true)
+				  .size([document.body.offsetWidth, document.body.offsetHeight]);
+
+				graph.nodes.forEach(function (n) {
+					n.width *= 1.5;
+					n.height *= 1.5;
+				})
+
+				d3cola
+ 				  .nodes(graph.nodes)
+				  .links(graph.edges)
+				  .flowLayout("y", 100)
+				  .symmetricDiffLinkLengths(70)
+				  .start(50, 15, 5)
+				  .stop();
+
+				graph.nodes.forEach(function (n) {
+					n.width /= 1.5;
+					n.height /= 1.5;
+				});
+			}
+
+			function NCBIGeneQueryURL(gene, organism) {
+				var url = "http://www.ncbi.nlm.nih.gov/gene/?term=";
+				
+				if (gene)
+				{
+					url += gene.split("_")[0] + "[SYM]";	// e.g.: gene "CBL_Ex_8_9" diventa "CBL", JARID_2 rinominato in JARID2
+				}
+				
+				if (organism)
+				{
+					url += organism + "[ORGN]";
+				}
+
+				return url;
+			}
+
+			function IsAnOperator(name) {
+				return name === "OR" || name === "XOR" || name === "AND";
+			}
+
+		// Codice
+			
+			// Load XML and generate graph object
+			
+			d3.xml(filename, function(error, data) {
+				if (error || data === null) {
+					alert("Errore durante il caricamento del file \"" + filename + "\"");
+					return;
+				}
+				
+				var temp = [].map.call(data.querySelectorAll("key"), function(tag) {
+					return {
+						"id": tag.getAttribute("id"),
+						"for": tag.getAttribute("for"),
+						"name": tag.getAttribute("attr.name"),
+						"type": tag.getAttribute("attr.type")
+					};
+				});
+				
+				var keys = {		// keys conterrà le chiavi del documento xml, viene usato per generare gli attributi del grafico
+					"graph": {},
+					"node": {},
+					"edge": {}
+				};
+				
+				temp.forEach(function(key) {
+					switch (key.for) {
+						case "graph": {
+							keys.graph[key.id] = {
+								"name": key.name,
+								"type": key.type
+							}
+							break;
+						}
+						case "node": {
+							keys.node[key.id] = {
+								"name": key.name,
+								"type": key.type
+							}
+							break;
+						}
+						case "edge": {
+							keys.edge[key.id] = {
+								"name": key.name,
+								"type": key.type
+							}
+							break;
+						}
+					}
+				});
+
+				graph = make_graph(data.querySelector("graph"), keys);	// genero il grafico con relativi attributi
+
+				cola_position_graph(graph);		// posiziono i nodi con un certo criterio
+
+				reference_system.width = d3.max(graph.nodes, function(d) { return d.x + d.width * Troncola.size_scale; });
+				reference_system.height = d3.max(graph.nodes, function(d) { return d.y + d.height * Troncola.size_scale; });
+
+			// Init canvas
+
+				var canvas = document.getElementById("graph_container");
+
+				canvas.setAttribute("width", reference_system.width);
+				canvas.setAttribute("height", reference_system.height);
+
+				renderer = canvas.getContext("2d");
+
+				camera.x = d3.min(graph.nodes, function(n) { return n.x - n.width / 2; });
+				camera.y = d3.min(graph.nodes, function(n) { return n.y - n.height / 2; });
+				camera.width = canvas.offsetWidth;
+				camera.height = canvas.offsetHeight;
+
+				draw();
+
+				canvas.onmouseup = function() {};
+				canvas.onmousedown = function() {};
+				canvas.onwheel = wheel;
 			});
 		}
 	};

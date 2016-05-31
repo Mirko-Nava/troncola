@@ -415,7 +415,7 @@
 					}
 				});
 
-				graph = make_graph(data.querySelector("graph"), keys);	// genero il grafico con relativi attributi
+				var graph = make_graph(data.querySelector("graph"), keys);	// genero il grafico con relativi attributi
 				
 				node_hw = d3.max(graph.nodes, function(d) { return d.width; }) * Troncola.size_scale * 0.5;
 				node_hh = d3.max(graph.nodes, function(d) { return d.height; }) * Troncola.size_scale * 0.5;
