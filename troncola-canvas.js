@@ -19,7 +19,7 @@
 	var side_bar = undefined;			// Oggetto del dom
 	var renderer = undefined;			// Oggetto che permette la stampa su canvas
 	var dragging = undefined;			// Id del nodo in fase dragging
-	var font_size = 14;					// Dimensione font in px
+	var font_size = 18;					// Dimensione font in px
 
 	CanvasRenderingContext2D.prototype.clear = CanvasRenderingContext2D.prototype.clear || function(preserveTransform) {
 		if (preserveTransform) {
@@ -212,7 +212,7 @@
 				renderer.font = font_size + "px " + Troncola.label_font_name;
 
 				!function(m) {
-					//console.log(m.sc+" 0 "+m.tx+"\n0 "+m.sc+" "+m.ty+"\n0 0 1");
+					console.log(m.sc+" 0 "+m.tx+"\n0 "+m.sc+" "+m.ty+"\n0 0 1");
 					renderer.transform(m.sc, 0, 0, m.sc, m.tx, m.ty);
 				} (camera);
 
@@ -399,21 +399,23 @@
 
 		// Util
 
-			function maxx(array, extractor) {
-				var res = extractor(array[0]);
+			function max(array, extractor) {
+				var res = extractor(array[0]), temp;
 				for (var i = 1; i < array.length; i++) {
-					if (array[i] > res) {
-						res = array[i];
+					temp = extractor(array[i]);
+					if (temp > res) {
+						res = temp;
 					}
 				}
 				return res;
 			}
 
-			function minn(array, extractor) {
-				var res = extractor(array[0]);
+			function min(array, extractor) {
+				var res = extractor(array[0]), temp;
 				for (var i = 1; i < array.length; i++) {
-					if (array[i] < res) {
-						res = array[i];
+					temp = extractor(array[i]);
+					if (temp < res) {
+						res = temp;
 					}
 				}
 				return res;
@@ -474,10 +476,20 @@
 
 				cola_position_graph(graph);		// posiziono i nodi con un certo criterio
 
-				reference_system.x = 0;
-				reference_system.y = 0;
-				reference_system.width = maxx(graph.nodes, function(d) { return d.x + d.width * Troncola.size_scale; });
-				reference_system.height = maxx(graph.nodes, function(d) { return d.y + d.height * Troncola.size_scale; });
+				var minx = min(graph.nodes, function(n) { return n.x - n.width / 2; }),
+					miny = min(graph.nodes, function(n) { return n.y - n.width / 2; }),
+					maxx = max(graph.nodes, function(n) { return n.x + n.width / 2; }) - minx,
+					maxy = max(graph.nodes, function(n) { return n.y + n.width / 2; }) - miny;
+
+				graph.nodes.forEach(function(n) {
+					n.x -= minx + maxx / 2;
+					n.y -= miny + maxy / 2;
+				});
+
+				reference_system.x = maxx / 2;
+				reference_system.y = maxy / 2;
+				reference_system.width = maxx;
+				reference_system.height = maxy;
 
 			// Init canvas
 
@@ -490,8 +502,8 @@
 				side_bar = document.getElementById("side_bar");
 
 				camera.sc = canvas.offsetWidth / reference_system.width;
-				camera.tx = -minn(graph.nodes, function(n) { return n.x - n.width / 2; }) * camera.sc;
-				camera.ty = -minn(graph.nodes, function(n) { return n.y - n.height / 2; }) * camera.sc;
+				camera.tx = - minx * 1.3;
+				camera.ty = - miny * 0.45;
 
 				draw();
 				update_sidebar("<p>Nessun nodo selezionato</p>",
