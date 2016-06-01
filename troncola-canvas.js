@@ -69,7 +69,6 @@
 
 					while (!flag && i < length) {
 						if (nodes[i].inside(mx, my, Troncola.size_scale)) {
-							console.log(i);
 							flag = true;
 							dragging = {
 								"id": i,
@@ -171,18 +170,41 @@
 
 			function draw() {
 
-				function draw_arrow(tipx, tipy, angle) {
-					//todo: draw an arrow
-					var length = 10,
-						ang = 0.35,
-						sinl = Math.sin(angle + ang),
-						cosl = Math.cos(angle + ang);
-					//renderer.moveTo(tipx + length * cosl, tipy + length * sinl);
-					//renderer.lineTo(tipx, tipy);
+				function draw_arrow(source, target) {
+					var tx = target.x,
+						ty = target.y,
+						dx = tx - source.x,
+						dy = ty - source.y,
+						width = target.width * Troncola.size_scale,
+						length = 30;
+						angle = Math.abs(Math.atan(dy / dx)),
+						delta = -.8;
 
-					renderer.fillStyle = "#FF00FF"
+					if (dx < 0 && dy < 0) {
+						angle = Math.PI + angle;
+					} else if (dx < 0 && dy > 0) {
+						angle = Math.PI - angle;
+					} else if (dx > 0 && dy < 0) {
+						angle = Math.PI * 2 - angle;
+					}
+
+					var	sin = Math.sin(angle),
+						cos = Math.cos(angle),
+						sinl = Math.sin(angle + delta),
+						cosl = Math.cos(angle + delta),
+						sinr = Math.sin(angle - delta),
+						cosr = Math.cos(angle - delta);
+
+					tx -= width * cos;
+					ty -= width * sin;
+
+					renderer.moveTo(tx, ty);
+					renderer.lineTo(tx + length * sinl, ty - length * cosl);
+					renderer.moveTo(tx, ty);
+					renderer.lineTo(tx - length * sinr, ty + length * cosr);
+					/*renderer.fillStyle = "#FF00FF"
 					renderer.font = "20px Arial";
-					renderer.fillText("" + angle / Math.PI * 180, tipx, tipy);
+					renderer.fillText("" + angle / Math.PI * 180, tx, ty);*/
 				}
 
 				renderer.save();
@@ -201,7 +223,7 @@
 					renderer.lineWidth = e.weight * 2 / camera.sc;
 					renderer.strokeStyle = e.color;
 					if (e.arrow === "True") {
-						draw_arrow(e.target.x + 50, e.target.y, Math.atan((e.target.y-e.source.y)/(e.target.x-e.source.x)));
+						draw_arrow(e.source, e.target);
 					}
 					if (e.line === "Dash") {
 						renderer.setLineDash([10, 10]);
@@ -260,8 +282,7 @@
 						renderer.fill();
 						renderer.stroke();
 						renderer.fillStyle = n.fontcolor;
-						var length = n.name.length;//todo: centered?
-						renderer.fillText(n.name, n.x - font_size * length / 2, n.y + font_size / 2);
+						renderer.fillText(n.name, n.x - font_size * n.name.length / 3, n.y + font_size / 2);
 					}
 				});
 
@@ -351,11 +372,6 @@
 				  .avoidOverlaps(true)
 				  .size([document.body.offsetWidth, document.body.offsetHeight]);
 
-				graph.nodes.forEach(function (n) {
-					n.width *= 1.5;
-					n.height *= 1.5;
-				})
-
 				d3cola
  				  .nodes(graph.nodes)
 				  .links(graph.edges)
@@ -363,11 +379,6 @@
 				  .symmetricDiffLinkLengths(70)
 				  .start(50, 15, 5)
 				  .stop();
-
-				graph.nodes.forEach(function (n) {
-					n.width /= 1.5;
-					n.height /= 1.5;
-				});
 			}
 
 			function NCBIGeneQueryURL(gene, organism) {
@@ -384,6 +395,28 @@
 				}
 
 				return url;
+			}
+
+		// Util
+
+			function maxx(array, extractor) {
+				var res = extractor(array[0]);
+				for (var i = 1; i < array.length; i++) {
+					if (array[i] > res) {
+						res = array[i];
+					}
+				}
+				return res;
+			}
+
+			function minn(array, extractor) {
+				var res = extractor(array[0]);
+				for (var i = 1; i < array.length; i++) {
+					if (array[i] < res) {
+						res = array[i];
+					}
+				}
+				return res;
 			}
 
 		// Codice
@@ -443,8 +476,8 @@
 
 				reference_system.x = 0;
 				reference_system.y = 0;
-				reference_system.width = d3.max(graph.nodes, function(d) { return d.x + d.width * Troncola.size_scale; });
-				reference_system.height = d3.max(graph.nodes, function(d) { return d.y + d.height * Troncola.size_scale; });
+				reference_system.width = maxx(graph.nodes, function(d) { return d.x + d.width * Troncola.size_scale; });
+				reference_system.height = maxx(graph.nodes, function(d) { return d.y + d.height * Troncola.size_scale; });
 
 			// Init canvas
 
@@ -457,8 +490,8 @@
 				side_bar = document.getElementById("side_bar");
 
 				camera.sc = canvas.offsetWidth / reference_system.width;
-				camera.tx = -d3.min(graph.nodes, function(n) { return n.x - n.width / 2; }) * camera.sc;
-				camera.ty = -d3.min(graph.nodes, function(n) { return n.y - n.height / 2; }) * camera.sc;
+				camera.tx = -minn(graph.nodes, function(n) { return n.x - n.width / 2; }) * camera.sc;
+				camera.ty = -minn(graph.nodes, function(n) { return n.y - n.height / 2; }) * camera.sc;
 
 				draw();
 				update_sidebar("<p>Nessun nodo selezionato</p>",
