@@ -5,22 +5,34 @@
 	var reference_system = {
 		"x" : 0,
 		"y" : 0,
-		"width" : 0,
-		"height" : 0
+		"width" : 100,
+		"height" : 100
 	};
 
 	var camera = {
-		"x" : 0,
-		"y" : 0,
-		"width" : 0,
-		"height" : 0,
+		"tx" : 0,
+		"ty" : 0,
+		"sc" : 1
 	}
 
 	var graph = undefined;				// Oggetto che rappresenta il grafo
+	var side_bar = undefined;			// Oggetto del dom
 	var renderer = undefined;			// Oggetto che permette la stampa su canvas
 	var dragging = undefined;			// Id del nodo in fase dragging
-	var hovering = undefined;			// Id del nodo in fase hovering
 	var font_size = 14;					// Dimensione font in px
+
+	CanvasRenderingContext2D.prototype.clear = CanvasRenderingContext2D.prototype.clear || function(preserveTransform) {
+		if (preserveTransform) {
+			this.save();
+			this.setTransform(1, 0, 0, 1, 0, 0);
+		}
+
+		this.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+		if (preserveTransform) {
+			this.restore();
+		}   
+	};
 
 	var Troncola = {
 		
@@ -29,7 +41,6 @@
 		"size_scale":		0.33,		// Fattore di scala per i nodi
 		"stroke_width":		4,			// Spessore linee
 		"label_font_name":	"arial",	// Font dei label dei nodi
-		"desc_font_name":	"courier",	// Font delle descrizioni dei nodi
 
 // Funzioni
 
@@ -38,159 +49,223 @@
 		// Eventi
 
 			function wheel(event) {
-				console.log("zoom " + event.wheelDelta);
-				camera.width += event.deltaX;
-				camera.height += event.deltaY;
+				var delta = event.deltaY / 100;
+				//todo: fix zoom origin!
+				camera.sc += delta;
+				if (camera.sc < 0.3) camera.sc = 0.3;
+				else if (camera.sc > 2) camera.sc = 2;
 				draw();
+			}
+
+			function mousedown(event) {
+				if (!dragging) {
+					var mx = (event.clientX - camera.tx) / camera.sc,
+						my = (event.clientY - camera.ty) / camera.sc;
+
+					var nodes = graph.nodes,
+						length = nodes.length,
+						i = 0,
+						flag = false;
+
+					while (!flag && i < length) {
+						if (nodes[i].inside(mx, my, Troncola.size_scale)) {
+							console.log(i);
+							flag = true;
+							dragging = {
+								"id": i,
+								"dragx": event.clientX,
+								"dragy": event.clientY
+							}
+						}
+						i++;
+					}
+
+					if (!flag) {
+						dragging = {
+							"id": "camera",
+							"dragx": event.clientX,
+							"dragy": event.clientY
+						}
+					} else {
+						node_selected(i - 1);
+					}
+				}
+			}
+
+			function mousemove(event) {
+				if (dragging) {
+					var dx = event.clientX - dragging.dragx,
+						dy = event.clientY - dragging.dragy;
+
+					dragging.dragx += dx;
+					dragging.dragy += dy;
+
+					if (dragging.id === "camera") {
+						camera.tx += dx;
+						camera.ty += dy;
+					} else {
+						var node = graph.nodes[dragging.id];
+						node.x += dx / camera.sc;
+						node.y += dy / camera.sc;
+						node_selected(dragging.id);
+					}
+
+					draw();
+				}
+			}
+
+			function mouseup(event) {
+				if (dragging) {
+					dragging = undefined;
+				}
+			}
+
+			function mouseout(event) { dragging = undefined; }
+
+		// Selezione ogetti
+
+			function node_selected(i) {
+				var node = graph.nodes[i],
+					title = "",
+					desc = "";
+
+				if (node.is_op) {
+					title += node.name;
+
+					switch(node.name) {
+						case "OR": {
+							desc += "<p>La causa è uno o più dei geni entranti</p>";
+							break;
+						}
+						case "XOR": {
+							desc += "<p>La causa è uno soltato tra i geni entranti</p>";
+							break;
+						}
+						case "AND": {
+							desc += "<p>Le cause sono tutti i geni entranti</p>";
+							break;
+						}
+					}
+				} else {
+					title += "<a href=\""+ NCBIGeneQueryURL(node.name, "human") +"\" target=\"_blank\">" + node.name + "</a>";
+					desc += "tipo: " + node.type + "\n";
+				}
+
+				update_sidebar(title, desc);
+			}
+
+			function edge_selected(i) {
+				var edge = graph.edges[i],
+					title = "<p>Edge tra " + edge.target.name + " e " + edge.target.name + "</p>",
+					desc = "<p>descrizione</p>";
+
+				update_sidebar(title, desc);
+			}
+
+			function update_sidebar(title, desc) {
+				side_bar.getElementsByClassName("title")[0].innerHTML =  title;
+				side_bar.getElementsByClassName("desc")[0].innerHTML = desc;
 			}
 
 		// Stampa grafico
 
 			function draw() {
 
-				function transform(m) {
-					renderer.transform(m.scalex, 0, 0, m.scaley, m.trasx, m.trasy);
+				function draw_arrow(tipx, tipy, angle) {
+					//todo: draw an arrow
+					var length = 10,
+						ang = 0.35,
+						sinl = Math.sin(angle + ang),
+						cosl = Math.cos(angle + ang);
+					//renderer.moveTo(tipx + length * cosl, tipy + length * sinl);
+					//renderer.lineTo(tipx, tipy);
+
+					renderer.fillStyle = "#FF00FF"
+					renderer.font = "20px Arial";
+					renderer.fillText("" + angle / Math.PI * 180, tipx, tipy);
 				}
 
-				transform({
-					"scalex": reference_system.width / camera.width,
-					"scaley": reference_system.height / camera.height,
-					"trasx": -camera.x,
-					"trasy": -camera.y
-				});
+				renderer.save();
+				renderer.clear();
+				renderer.font = font_size + "px " + Troncola.label_font_name;
+
+				!function(m) {
+					//console.log(m.sc+" 0 "+m.tx+"\n0 "+m.sc+" "+m.ty+"\n0 0 1");
+					renderer.transform(m.sc, 0, 0, m.sc, m.tx, m.ty);
+				} (camera);
 
 				graph.edges.forEach(function(e) {
 					renderer.beginPath();
 					renderer.moveTo(e.source.x, e.source.y);
 					renderer.lineTo(e.target.x, e.target.y);
-					renderer.lineWidth = 15;
-					renderer.strokeStyle = "#FF0000";
+					renderer.lineWidth = e.weight * 2 / camera.sc;
+					renderer.strokeStyle = e.color;
+					if (e.arrow === "True") {
+						draw_arrow(e.target.x + 50, e.target.y, Math.atan((e.target.y-e.source.y)/(e.target.x-e.source.x)));
+					}
+					if (e.line === "Dash") {
+						renderer.setLineDash([10, 10]);
+					} else {
+						renderer.setLineDash([]);
+					}
 					renderer.stroke();
 				});
 
-				/*var edges = edge_groups
-				.append("line")
-				  .attr({
-					"class": "edge",
-					"x1": function(d) { return d.source.x; },
-					"y1": function(d) { return d.source.y; },
-					"x2": function(d) { return d.target.x; },
-					"y2": function(d) { return d.target.y; },
-					"marker-end": function(d) {
-									if (d.arrow === "True") return "url(#arrow-" + d.color.substring(1) + ")"; 
-								}
-				  })
-				  .style({
-					"stroke": function(d) { return d.color; },
-					"stroke-width": function(d) {
-										if (d.width) return d.width + "px"; else return Troncola.stroke_width + "px";
-									},
-					"stroke-dasharray": function(d) { if (d.line === "Dash") return "5,5"; }
-				  });
+				graph.nodes.forEach(function(n) {
+					renderer.fillStyle = n.fillcolor;
+					renderer.lineWidth = n.borderwidth * 2 / camera.sc;
+					renderer.strokeStyle = n.bordercolor;
 
-				  edge_groups.on("click", edge_click);
+					if (n.is_op) {
+						var bwidth = n.width * Troncola.size_scale * 1.2;
+						var owidth = n.width * Troncola.size_scale * 0.4;
 
-			// Nodes
-				
-				var node_groups = svg.selectAll(".node_group")
-				  .data(graph.nodes)
-				.enter().append("g")
-				  .attr({
-					  "class": "node_group",
-					  "transform": function(d) {
-					  	return "translate(" + d.x + ", " + d.y + ")"; }
-				  })
-				  .style("cursor", "grab");
-				
-				var nodes = node_groups
-				.append("ellipse")
-				.filter(function(d) { return !IsAnOperator(d.name); })
-				  .attr({
-					"class": "node",
-					"rx": function(d) { return d.width * Troncola.size_scale; },
-					"ry": function(d) { return d.height * Troncola.size_scale; },
-					"cx": "0",
-					"cy": "0"
-				  })
-				  .style({
-					"fill": function(d) { return d.fillcolor; },
-					"stroke": function(d) { return d.bordercolor; },
-					"stroke-width": function(d) { return d.borderwidth; }
-				  });
-				
-				var node_labels = node_groups//.selectAll(".label_link")
-				.append("text")
-				  .text(function(d) { return d.label; })
-				  .attr({
-					  "class": "node_label",
-					  "x": "0",
-					  "y": font_size / 2
-				  })
-				  .style({
-					"fill": function(d) { return d.fontcolor; },
-					"text-anchor": "middle",
-					"font-size": font_size + "px",
-					"font-family": Troncola.label_font_name
-				  });
+						renderer.beginPath();
+						renderer.moveTo(n.x + bwidth, n.y);
+						renderer.lineTo(n.x, n.y + bwidth);
+						renderer.lineTo(n.x - bwidth, n.y);
+						renderer.lineTo(n.x, n.y - bwidth);
+						renderer.lineTo(n.x + bwidth, n.y);
+						renderer.fill();
+						renderer.stroke();
 
-				node_groups.on("mousedown", node_drag_start);
-				node_groups.on("mousemove", node_dragging);
-				node_groups.on("mouseup", node_drag_stop);
-				node_groups.on("mouseout", node_out);
+						// draw operator symbol
+						renderer.beginPath();
 
-			// Operators
+						switch(n.name) {
+							case "XOR": {
+								renderer.moveTo(n.x - owidth, n.y - owidth);
+								renderer.lineTo(n.x + owidth, n.y + owidth);
+								renderer.moveTo(n.x - owidth, n.y + owidth);
+								renderer.lineTo(n.x + owidth, n.y - owidth);
+								break;
+							}
+							case "OR": {
+								renderer.arc(n.x, n.y, owidth * 1.15, 0, 2 * Math.PI);
+								break;
+							}
+							case "AND": {
+								renderer.moveTo(n.x, n.y - owidth * 1.15);
+								renderer.lineTo(n.x, n.y + owidth * 1.15);
+								renderer.moveTo(n.x - owidth * 1.15, n.y);
+								renderer.lineTo(n.x + owidth * 1.15, n.y);
+								break;
+							}
+						}
 
-				var operators = node_groups
-				.append("polygon")
-				.filter(function(d) { return IsAnOperator(d.name); })
-				  .attr({
-				  	"class": "operator",
-				  	"points": function(d) {
-				  				var l = d.width * Troncola.size_scale * 1.5; //todo: almeno è un po piu grosso
-				  				return "0," + -l + " " + l + ",0 0," + l + " " + -l + ",0"; // rombo di lato l
-				  			}
-				  })
-				  .style({
-				  	"fill": function(d) { return d.fillcolor; },
-					"stroke": function(d) { return d.bordercolor; },
-					"stroke-width": function(d) { return d.borderwidth; }
-				  });
+						renderer.stroke();
+					} else {
+						renderer.beginPath();
+						renderer.arc(n.x, n.y, n.width * Troncola.size_scale, 0, 2 * Math.PI);
+						renderer.fill();
+						renderer.stroke();
+						renderer.fillStyle = n.fontcolor;
+						var length = n.name.length;//todo: centered?
+						renderer.fillText(n.name, n.x - font_size * length / 2, n.y + font_size / 2);
+					}
+				});
 
-				var operator_symbols = node_groups
-				.append("path")
-				.filter(function(d) { return IsAnOperator(d.name); })
-				  .attr({
-				  	"class": "operator_symbol",
-				  	"d": function(d) {
-				  		var l = "" + (d.width * Troncola.size_scale - 10);
-
-				  		switch (d.name) {
-				  			case "OR": return "m "+-l+",0 a "+l+","+l+" 0 1,0 "+2*l+",0 a "+l+","+l+" 0 1,0 "+-2*l+",0";
-				  			case "XOR": return "m "+l+","+l+" l "+-2*l+","+-2*l+" m "+2*l+",0 l "+-2*l+","+2*l;
-				  			case "AND": return "m 0,"+-l+" l 0,"+2*l+" m "+-l+","+-l+" l "+2*l+",0";
-				  		}
-				  	}
-				  })
-				  .style({
-				  	"fill": "none",
-					"stroke": "#000000",
-					"stroke-width": "3"
-				  });
-
-			// Side Bar
-
-				var side_bar = d3.select("#side_bar");
-
-				side_bar
-				.append("p")
-				  .text("Nessun nodo selezionato")
-				  .attr("class", "title");
-
-				side_bar
-				.append("p")
-				  .text("Clicca su un nodo per avere maggiori informazioni")
-				  .attr("class", "desc");
-*/
+				renderer.restore();
 			}
 
 		// Generazione grafico
@@ -219,7 +294,6 @@
 					graph[key.name] = value;
 				});
 				
-				//todo: aggiungere is_op agli oggetti!
 				var nodes = [].map.call(graph_tag.querySelectorAll("node"), function(tag) { // per ogni nodo
 					var node = {
 						"id": tag.getAttribute("id")
@@ -234,7 +308,17 @@
 							value = +value;
 						node[key.name] = value;
 					});
-					
+
+					var name = node.name;
+					node.is_op = (name === "OR" || name === "XOR" || name === "AND");
+					node.inside = function(x, y, scale) {
+						function mag(x, y) {
+							return Math.sqrt(x * x + y * y);
+						}
+
+						return mag(x - this.x, y - this.y) < this.width *  scale;
+					};
+
 					return node;
 				});
 				
@@ -302,10 +386,6 @@
 				return url;
 			}
 
-			function IsAnOperator(name) {
-				return name === "OR" || name === "XOR" || name === "AND";
-			}
-
 		// Codice
 			
 			// Load XML and generate graph object
@@ -361,6 +441,8 @@
 
 				cola_position_graph(graph);		// posiziono i nodi con un certo criterio
 
+				reference_system.x = 0;
+				reference_system.y = 0;
 				reference_system.width = d3.max(graph.nodes, function(d) { return d.x + d.width * Troncola.size_scale; });
 				reference_system.height = d3.max(graph.nodes, function(d) { return d.y + d.height * Troncola.size_scale; });
 
@@ -368,20 +450,24 @@
 
 				var canvas = document.getElementById("graph_container");
 
-				canvas.setAttribute("width", reference_system.width);
-				canvas.setAttribute("height", reference_system.height);
+				canvas.setAttribute("width", canvas.offsetWidth);
+				canvas.setAttribute("height", canvas.offsetHeight);
 
 				renderer = canvas.getContext("2d");
+				side_bar = document.getElementById("side_bar");
 
-				camera.x = d3.min(graph.nodes, function(n) { return n.x - n.width / 2; });
-				camera.y = d3.min(graph.nodes, function(n) { return n.y - n.height / 2; });
-				camera.width = canvas.offsetWidth;
-				camera.height = canvas.offsetHeight;
+				camera.sc = canvas.offsetWidth / reference_system.width;
+				camera.tx = -d3.min(graph.nodes, function(n) { return n.x - n.width / 2; }) * camera.sc;
+				camera.ty = -d3.min(graph.nodes, function(n) { return n.y - n.height / 2; }) * camera.sc;
 
 				draw();
+				update_sidebar("<p>Nessun nodo selezionato</p>",
+							   "<p>Seleziona un nodo per avere maggiori informazioni</p>");
 
-				canvas.onmouseup = function() {};
-				canvas.onmousedown = function() {};
+				canvas.onmouseup = mouseup;
+				canvas.onmousedown = mousedown;
+				canvas.onmousemove = mousemove;
+				canvas.onmouseout = mouseout;
 				canvas.onwheel = wheel;
 			});
 		}
