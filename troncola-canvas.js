@@ -385,7 +385,7 @@
 				
 				if (gene)
 				{
-					url += gene.split("_")[0] + "[SYM]";	// e.g.: gene "CBL_Ex_8_9" diventa "CBL", JARID_2 rinominato in JARID2
+					url += gene.split("_")[0] + "[SYM]";
 				}
 				
 				if (organism)
