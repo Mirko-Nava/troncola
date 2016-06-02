@@ -50,7 +50,6 @@
 
 			function wheel(event) {
 				var delta = event.deltaY / 100;
-				//todo: fix zoom origin!
 				camera.sc += delta;
 				if (camera.sc < 0.3) camera.sc = 0.3;
 				else if (camera.sc > 2) camera.sc = 2;
@@ -502,8 +501,8 @@
 				side_bar = document.getElementById("side_bar");
 
 				camera.sc = canvas.offsetWidth / reference_system.width;
-				camera.tx = - minx * 1.3;
-				camera.ty = - miny * 0.45;
+				camera.tx = - minx * 1.2;
+				camera.ty = - miny * 0.42;
 
 				draw();
 				update_sidebar("<p>Nessun nodo selezionato</p>",
