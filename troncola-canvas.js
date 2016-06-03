@@ -1,6 +1,6 @@
 Troncola = {};
 
-function(Troncola) {
+!function(Troncola) {
 
 // Variabili Private
 
