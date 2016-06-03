@@ -147,7 +147,7 @@ Troncola = {};
 						}
 					}
 				} else {
-					title += "<a href=\""+ NCBIGeneQueryURL(node.name, "human") +"\" target=\"_blank\">" + node.name + "</a>";
+					title += node.name;//"<a href=\""+ NCBIGeneQueryURL(node.name, "human") +"\" target=\"_blank\">" + node.name + "</a>";
 					desc += "tipo: " + node.type + "\n";
 				}
 
@@ -382,7 +382,7 @@ Troncola = {};
 				  .stop();
 			}
 
-			function NCBIGeneQueryURL(gene, organism) {
+			/*function NCBIGeneQueryURL(gene, organism) {
 				var url = "http://www.ncbi.nlm.nih.gov/gene/?term=";
 				
 				if (gene)
@@ -396,7 +396,7 @@ Troncola = {};
 				}
 
 				return url;
-			}
+			}*/
 
 		// Util
 
