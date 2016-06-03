@@ -1,4 +1,6 @@
-!function() {
+Troncola = {};
+
+function(Troncola) {
 
 // Variabili Private
 
@@ -524,4 +526,4 @@
 		if (typeof module === "object" && module.exports) module.exports = Troncola;
 	else
 		this.Troncola = Troncola;
-} ();
+} (Troncola);
