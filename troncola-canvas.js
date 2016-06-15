@@ -53,7 +53,7 @@ Troncola = {};
 			function wheel(event) {
 				var delta = event.deltaY / 100;
 				camera.sc += delta;
-				if (camera.sc < 0.3) camera.sc = 0.3;
+				if (camera.sc < 0.2) camera.sc = 0.2;
 				else if (camera.sc > 2) camera.sc = 2;
 				draw();
 			}
@@ -213,7 +213,7 @@ Troncola = {};
 				renderer.font = font_size + "px " + Troncola.label_font_name;
 
 				!function(m) {
-					console.log(m.sc+" 0 "+m.tx+"\n0 "+m.sc+" "+m.ty+"\n0 0 1");
+					//console.log(m.sc+" 0 "+m.tx+"\n0 "+m.sc+" "+m.ty+"\n0 0 1");
 					renderer.transform(m.sc, 0, 0, m.sc, m.tx, m.ty);
 				} (camera);
 
@@ -232,12 +232,19 @@ Troncola = {};
 						renderer.setLineDash([]);
 					}
 					renderer.stroke();
+					//here
+					var mx = (e.source.x + e.target.x) * 0.5,
+						my = (e.source.y + e.target.y) * 0.5;
+					renderer.moveTo(mx, my);
+					renderer.fillText(round_dec(e["p-value1"] * 100, 2), mx, my - font_size - 5);
+					renderer.fillText(round_dec(e["p-value2"] * 100, 2), mx, my);
+					renderer.fillText(round_dec(e["p-value3"] * 100, 2), mx, my + font_size + 5);
 				});
 
 				graph.nodes.forEach(function(n) {
 					renderer.fillStyle = n.fillcolor;
 					renderer.lineWidth = n.borderwidth * 2 / camera.sc;
-					renderer.strokeStyle = n.bordercolor;
+					renderer.strokeStyle = n.bordercolor; //here se border color non c'è allora faccio switch su type
 
 					if (n.is_op) {
 						var bwidth = n.width * Troncola.size_scale * 1.2;
@@ -278,12 +285,14 @@ Troncola = {};
 
 						renderer.stroke();
 					} else {
-						renderer.beginPath();
+						renderer.beginPath();//here
 						renderer.arc(n.x, n.y, n.width * Troncola.size_scale, 0, 2 * Math.PI);
 						renderer.fill();
 						renderer.stroke();
 						renderer.fillStyle = n.fontcolor;
-						renderer.fillText(n.name, n.x - font_size * n.name.length / 3, n.y + font_size / 2);
+						renderer.fillText(n.name, n.x - font_size * n.name.length / 3, n.y - font_size - 5);
+						renderer.fillText(round_dec(n.perc * 100, 2) + "%", n.x - font_size * 1.7, n.y);
+						renderer.fillText("(" + n.count + ")", n.x - font_size, n.y + font_size + 5);
 					}
 				});
 
@@ -318,7 +327,10 @@ Troncola = {};
 				
 				var nodes = [].map.call(graph_tag.querySelectorAll("node"), function(tag) { // per ogni nodo
 					var node = {
-						"id": tag.getAttribute("id")
+						"id": tag.getAttribute("id"),
+						"perc": Math.random() / 2,
+						"count": Math.floor(Math.random() * 100),
+						"type": Math.floor(Math.random() * 3)
 					};
 					
 					var node_attr = [].slice.call(tag.querySelectorAll("data"));	// estraggo attributi del nodo
@@ -331,6 +343,8 @@ Troncola = {};
 						node[key.name] = value;
 					});
 
+					node.name = node.name.split("_Ex")[0].replace("_", "");
+
 					var name = node.name;
 					node.is_op = (name === "OR" || name === "XOR" || name === "AND");
 					node.inside = function(x, y, scale) {
@@ -341,13 +355,22 @@ Troncola = {};
 						return mag(x - this.x, y - this.y) < this.width *  scale;
 					};
 
+					//here
+					if (!node.is_op) {
+						node.width *= 1 + node.perc * 3;
+						node.height *= 1 + node.perc * 3;
+					}
+
 					return node;
 				});
 				
 				var edges = [].map.call(graph_tag.querySelectorAll("edge"), function(tag) {	// per ogni arco
 					var edge = {
 						"source": arrayObjectIndexOf(nodes, "id", tag.getAttribute("source")),
-						"target": arrayObjectIndexOf(nodes, "id", tag.getAttribute("target"))
+						"target": arrayObjectIndexOf(nodes, "id", tag.getAttribute("target")),
+						"p-value1": Math.random() * 0.1, //here
+						"p-value2": Math.random() * 0.1,
+						"p-value3": Math.random() * 0.1
 					};
 					
 					var edge_attr = [].slice.call(tag.querySelectorAll("data"));	// estraggo attributi dell'arco
@@ -377,7 +400,7 @@ Troncola = {};
  				  .nodes(graph.nodes)
 				  .links(graph.edges)
 				  .flowLayout("y", 100)
-				  .symmetricDiffLinkLengths(70)
+				  .symmetricDiffLinkLengths(100)
 				  .start(50, 15, 5)
 				  .stop();
 			}
@@ -387,7 +410,7 @@ Troncola = {};
 				
 				if (gene)
 				{
-					url += gene.split("_")[0] + "[SYM]";
+					url += gene + "[SYM]";
 				}
 				
 				if (organism)
@@ -420,6 +443,11 @@ Troncola = {};
 					}
 				}
 				return res;
+			}
+
+			function round_dec(num, places) {
+				var n = Math.pow(10, places);
+				return Math.round(num * n) / n;
 			}
 
 		// Codice
@@ -503,8 +531,8 @@ Troncola = {};
 				side_bar = document.getElementById("side_bar");
 
 				camera.sc = canvas.offsetWidth / reference_system.width;
-				camera.tx = - minx * 1.2;
-				camera.ty = - miny * 0.42;
+				camera.tx = - minx * 0.60;
+				camera.ty = - miny * 0.35;
 
 				draw();
 				update_sidebar("<p>Nessun nodo selezionato</p>",
