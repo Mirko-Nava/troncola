@@ -172,11 +172,13 @@ Troncola = {};
 			function draw() {
 
 				function draw_arrow(source, target) {
-					var tx = target.x,
+					var y_scale = (target.height / target.width) * (Math.PI / 2),
+						tx = target.x,		//here perchè è spostato???
 						ty = target.y,
 						dx = tx - source.x,
 						dy = ty - source.y,
 						width = target.width * Troncola.size_scale,
+						height = target.height * Troncola.size_scale,
 						length = 30;
 						angle = Math.abs(Math.atan(dy / dx)),
 						delta = -.8;
@@ -196,16 +198,14 @@ Troncola = {};
 						sinr = Math.sin(angle - delta),
 						cosr = Math.cos(angle - delta);
 
-					tx -= width * cos;
-					ty -= width * sin;
+					tx -= width * cos / y_scale;
+					ty -= height * sin * y_scale;
 
-					renderer.moveTo(tx, ty);
+					renderer.moveTo(source.x, source.y);
+					renderer.lineTo(tx, ty);
 					renderer.lineTo(tx + length * sinl, ty - length * cosl);
 					renderer.moveTo(tx, ty);
 					renderer.lineTo(tx - length * sinr, ty + length * cosr);
-					/*renderer.fillStyle = "#FF00FF"
-					renderer.font = "20px Arial";
-					renderer.fillText("" + angle / Math.PI * 180, tx, ty);*/
 				}
 
 				renderer.save();
@@ -218,13 +218,16 @@ Troncola = {};
 				} (camera);
 
 				graph.edges.forEach(function(e) {
+					var y_scale = e.target.height / e.target.width;
 					renderer.beginPath();
-					renderer.moveTo(e.source.x, e.source.y);
-					renderer.lineTo(e.target.x, e.target.y);
 					renderer.lineWidth = e.weight * 2 / camera.sc;
 					renderer.strokeStyle = e.color;
 					if (e.arrow === "True") {
 						draw_arrow(e.source, e.target);
+					} else {
+
+						renderer.moveTo(e.source.x, e.source.y);
+						renderer.lineTo(e.target.x, e.target.y);
 					}
 					if (e.line === "Dash") {
 						renderer.setLineDash([10, 10]);
@@ -285,10 +288,15 @@ Troncola = {};
 
 						renderer.stroke();
 					} else {
-						renderer.beginPath();//here
-						renderer.arc(n.x, n.y, n.width * Troncola.size_scale, 0, 2 * Math.PI);
+						var y_scale = n.height / n.width;
+						renderer.beginPath();
+						console.log(n.width + " x " + n.height);
+						renderer.save();		//here se preferiscono ovale a cerchio
+						renderer.scale(1, y_scale);
+						renderer.arc(n.x, n.y / y_scale, n.width * Troncola.size_scale, 0, 2 * Math.PI);
 						renderer.fill();
 						renderer.stroke();
+						renderer.restore();
 						renderer.fillStyle = n.fontcolor;
 						renderer.fillText(n.name, n.x - font_size * n.name.length / 3, n.y - font_size - 5);
 						renderer.fillText(round_dec(n.perc * 100, 2) + "%", n.x - font_size * 1.7, n.y);
