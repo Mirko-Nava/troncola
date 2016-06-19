@@ -50,6 +50,11 @@ Troncola = {};
 			
 		// Eventi
 
+			function input(event) {
+				Troncola[this.name] = this.value;
+				draw();
+			}
+
 			function wheel(event) {
 				var delta = event.deltaY / 100;
 				camera.sc += delta;
@@ -550,6 +555,13 @@ Troncola = {};
 				canvas.onmousemove = mousemove;
 				canvas.onmouseout = mouseout;
 				canvas.onwheel = wheel;
+
+				var panel_inputs = document.getElementById('panel').getElementsByTagName('input');
+
+				for(var i = 0; i < panel_inputs.length; i++) {
+					panel_inputs[i].addEventListener('input', input);
+					panel_inputs[i].value = Troncola[panel_inputs[i].name];
+				}
 			});
 		}
 	};
