@@ -215,7 +215,7 @@ Troncola = {};
 
 				renderer.save();
 				renderer.clear();
-				renderer.font = Troncola.font_size + "px " + Troncola.label_font_name;
+				renderer.font = (+Troncola.font_size) + "px " + Troncola.label_font_name;
 
 				!function(m) {
 					//console.log(m.sc+" 0 "+m.tx+"\n0 "+m.sc+" "+m.ty+"\n0 0 1");
@@ -244,9 +244,9 @@ Troncola = {};
 					var mx = (e.source.x + e.target.x) * 0.5,
 						my = (e.source.y + e.target.y) * 0.5;
 					renderer.moveTo(mx, my);
-					renderer.fillText(round_dec(e["p-value1"] * 100, 2), mx, my - Troncola.font_size - 5);
+					renderer.fillText(round_dec(e["p-value1"] * 100, 2), mx, my - (+Troncola.font_size) - 5);
 					renderer.fillText(round_dec(e["p-value2"] * 100, 2), mx, my);
-					renderer.fillText(round_dec(e["p-value3"] * 100, 2), mx, my + Troncola.font_size + 5);
+					renderer.fillText(round_dec(e["p-value3"] * 100, 2), mx, my + (+Troncola.font_size) + 5);
 				});
 
 				graph.nodes.forEach(function(n) {
@@ -302,9 +302,9 @@ Troncola = {};
 						renderer.stroke();
 						renderer.restore();
 						renderer.fillStyle = n.fontcolor;
-						renderer.fillText(n.name, n.x - Troncola.font_size * n.name.length / 3, n.y - Troncola.font_size - 5);
-						renderer.fillText(round_dec(n.perc * 100, 2) + "%", n.x - Troncola.font_size * 1.7, n.y);
-						renderer.fillText("(" + n.count + ")", n.x - Troncola.font_size, n.y + Troncola.font_size + 5);
+						renderer.fillText(n.name, n.x - (+Troncola.font_size) * n.name.length / 3, n.y - (+Troncola.font_size) - 5);
+						renderer.fillText(round_dec(n.perc * 100, 2) + "%", n.x - (+Troncola.font_size) * 1.7, n.y);
+						renderer.fillText("(" + n.count + ")", n.x - (+Troncola.font_size), n.y + (+Troncola.font_size) + 5);
 					}
 				});
 
