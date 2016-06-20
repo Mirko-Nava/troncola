@@ -565,6 +565,10 @@ Troncola = {};
 				canvas.onmouseout = mouseout;
 				canvas.onwheel = wheel;
 
+				document.getElementById("img_download").onclick = function () {
+					this.href = canvas.toDataURL();
+				};
+
 				var panel = document.getElementById('panel'),
 					panel_inputs = panel.getElementsByTagName('input');
 					//input_color = undefined;
