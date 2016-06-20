@@ -21,6 +21,10 @@ Troncola = {};
 	var side_bar = undefined;			// Oggetto del dom
 	var renderer = undefined;			// Oggetto che permette la stampa su canvas
 	var dragging = undefined;			// Id del nodo in fase dragging
+	var type_list = {
+		"type": [],
+		"color": []
+	};					// Lista dei tipi di mutazioni genetiche
 
 	CanvasRenderingContext2D.prototype.clear = CanvasRenderingContext2D.prototype.clear || function(preserveTransform) {
 		if (preserveTransform) {
@@ -50,7 +54,7 @@ Troncola = {};
 			
 		// Eventi
 
-			function input(event) {
+			function input() {
 				Troncola[this.name] = this.value;
 				draw();
 			}
@@ -250,7 +254,6 @@ Troncola = {};
 				});
 
 				graph.nodes.forEach(function(n) {
-					renderer.fillStyle = n.fillcolor;
 					renderer.lineWidth = n.borderwidth * 2 / camera.sc;
 					renderer.strokeStyle = n.bordercolor; //here se border color non c'è allora faccio switch su type
 
@@ -258,6 +261,7 @@ Troncola = {};
 						var bwidth = n.width * Troncola.size_scale * 1.2;
 						var owidth = n.width * Troncola.size_scale * 0.4;
 
+						renderer.fillStyle = n.fillcolor;
 						renderer.beginPath();
 						renderer.moveTo(n.x + bwidth, n.y);
 						renderer.lineTo(n.x, n.y + bwidth);
@@ -294,6 +298,7 @@ Troncola = {};
 						renderer.stroke();
 					} else {
 						var y_scale = n.height / n.width;
+						renderer.fillStyle = type_list.color[type_list.type.indexOf(n.type)];
 						renderer.beginPath();
 						renderer.save();		//here se preferiscono ovale a cerchio
 						renderer.scale(1, y_scale);
@@ -371,6 +376,10 @@ Troncola = {};
 					if (!node.is_op) {
 						node.width *= 1 + node.perc * 3;
 						node.height *= 1 + node.perc * 3;
+						if (type_list.type.indexOf(node.type) == -1) {
+							type_list.type.push(node.type);
+							type_list.color.push(node.fillcolor);
+						}
 					}
 
 					return node;
@@ -556,11 +565,29 @@ Troncola = {};
 				canvas.onmouseout = mouseout;
 				canvas.onwheel = wheel;
 
-				var panel_inputs = document.getElementById('panel').getElementsByTagName('input');
+				var panel = document.getElementById('panel'),
+					panel_inputs = panel.getElementsByTagName('input');
+					//input_color = undefined;
 
 				for(var i = 0; i < panel_inputs.length; i++) {
 					panel_inputs[i].addEventListener('input', input);
 					panel_inputs[i].value = Troncola[panel_inputs[i].name];
+				}
+
+				panel.appendChild(document.createElement('br'));
+				for (var i = 0; i < type_list.type.length; i++) {
+					panel.appendChild(document.createTextNode(type_list.type[i]));
+					var input_color = document.createElement('input');
+					input_color.type = 'color';
+					input_color.name = type_list.type[i];
+					input_color.value = type_list.color[i].toUpperCase();
+					input_color.addEventListener('input', function () {
+						type_list.color[type_list.type.indexOf(this.name)] = this.value;
+						draw();
+					});
+					panel.appendChild(input_color);
+					panel.appendChild(document.createElement('br'));
+					panel.appendChild(document.createElement('br'));
 				}
 			});
 		}
