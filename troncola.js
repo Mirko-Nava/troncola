@@ -245,13 +245,15 @@ Troncola = {};
 						renderer.setLineDash([]);
 					}
 					renderer.stroke();
-					//here
-					var mx = (e.source.x + e.target.x) * 0.5,
-						my = (e.source.y + e.target.y) * 0.5;
-					renderer.moveTo(mx, my);
-					renderer.fillText(round_dec(e["p-value1"] * 100, 2), mx, my - f_scale - 5);
-					renderer.fillText(round_dec(e["p-value2"] * 100, 2), mx, my);
-					renderer.fillText(round_dec(e["p-value3"] * 100, 2), mx, my + f_scale + 5);
+					
+					if (!e.target.is_op) {
+						var mx = (e.source.x + e.target.x) * 0.5,
+							my = (e.source.y + e.target.y) * 0.5;
+						renderer.moveTo(mx, my);
+						renderer.fillText(round_dec(e["p-value1"] * 100, 2), mx, my - f_scale - 5);
+						renderer.fillText(round_dec(e["p-value2"] * 100, 2), mx, my);
+						renderer.fillText(round_dec(e["p-value3"] * 100, 2), mx, my + f_scale + 5);
+					}
 				});
 
 				graph.nodes.forEach(function(n) {
