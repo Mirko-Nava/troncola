@@ -45,7 +45,7 @@ Troncola = {};
 		
 		"size_scale":		0.5,		// Fattore di scala per i nodi
 		"stroke_width":		2,			// Spessore linee in px
-		"font_size":		8,			// Dimensione font in px
+		"font_size":		11,			// Dimensione font in px
 		"label_font_name":	"georgia",	// Font dei label dei nodi
 
 // Funzioni
