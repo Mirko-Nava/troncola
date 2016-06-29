@@ -575,12 +575,16 @@ Troncola = {};
 
 				var panel = document.getElementById('panel'),
 					panel_inputs = panel.getElementsByTagName('input');
-					//input_color = undefined;
 
 				for(var i = 0; i < panel_inputs.length; i++) {
-					panel_inputs[i].addEventListener('input', input);
+					panel_inputs[i].addEventListener('change', input);
 					panel_inputs[i].value = Troncola[panel_inputs[i].name];
 				}
+
+
+				var font_selection = document.getElementById('font_selection');
+				font_selection.onchange = input;
+				font_selection.value = Troncola[font_selection.name];
 
 				panel.appendChild(document.createElement('br'));
 				for (var i = 0; i < type_list.type.length; i++) {

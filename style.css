@@ -39,6 +39,6 @@ html, body {
 	color: #6688CC;
 }
 
-#side_bar #panel input {
+#side_bar #panel input, #side_bar #panel select {
 	float: right;
 }
