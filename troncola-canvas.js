@@ -43,10 +43,10 @@ Troncola = {};
 		
 // Variabili Pubbliche
 		
-		"size_scale":		0.33,		// Fattore di scala per i nodi
-		"stroke_width":		4,			// Spessore linee in px
-		"font_size":		16,			// Dimensione font in px
-		"label_font_name":	"arial black",	// Font dei label dei nodi
+		"size_scale":		0.5,		// Fattore di scala per i nodi
+		"stroke_width":		2,			// Spessore linee in px
+		"font_size":		8,			// Dimensione font in px
+		"label_font_name":	"georgia",	// Font dei label dei nodi
 
 // Funzioni
 
@@ -60,7 +60,7 @@ Troncola = {};
 			}
 
 			function wheel(event) {
-				var delta = event.deltaY / 100;
+				var delta = event.deltaY > 0 ? 0.05 : - 0.05;
 				camera.sc += delta;
 				if (camera.sc < 0.2) camera.sc = 0.2;
 				else if (camera.sc > 2) camera.sc = 2;
@@ -219,7 +219,7 @@ Troncola = {};
 
 				renderer.save();
 				renderer.clear();
-				renderer.font = (+Troncola.font_size) + "px " + Troncola.label_font_name;
+				renderer.font = ((+Troncola.font_size) / camera.sc) + "px " + Troncola.label_font_name;
 
 				!function(m) {
 					//console.log(m.sc+" 0 "+m.tx+"\n0 "+m.sc+" "+m.ty+"\n0 0 1");
@@ -227,7 +227,8 @@ Troncola = {};
 				} (camera);
 
 				graph.edges.forEach(function(e) {
-					var y_scale = e.target.height / e.target.width;
+					var y_scale = e.target.height / e.target.width,
+						f_scale = (+Troncola.font_size) / camera.sc;
 					renderer.beginPath();
 					renderer.lineWidth = Troncola.stroke_width / camera.sc;
 					renderer.strokeStyle = e.color;
@@ -248,9 +249,9 @@ Troncola = {};
 					var mx = (e.source.x + e.target.x) * 0.5,
 						my = (e.source.y + e.target.y) * 0.5;
 					renderer.moveTo(mx, my);
-					renderer.fillText(round_dec(e["p-value1"] * 100, 2), mx, my - (+Troncola.font_size) - 5);
+					renderer.fillText(round_dec(e["p-value1"] * 100, 2), mx, my - f_scale - 5);
 					renderer.fillText(round_dec(e["p-value2"] * 100, 2), mx, my);
-					renderer.fillText(round_dec(e["p-value3"] * 100, 2), mx, my + (+Troncola.font_size) + 5);
+					renderer.fillText(round_dec(e["p-value3"] * 100, 2), mx, my + f_scale + 5);
 				});
 
 				graph.nodes.forEach(function(n) {
@@ -297,19 +298,20 @@ Troncola = {};
 
 						renderer.stroke();
 					} else {
-						var y_scale = n.height / n.width;
+						var y_scale = n.height / n.width,
+							f_scale = (+Troncola.font_size) / camera.sc;
 						renderer.fillStyle = type_list.color[type_list.type.indexOf(n.type)];
 						renderer.beginPath();
-						renderer.save();		//here se preferiscono ovale a cerchio
+						renderer.save();
 						renderer.scale(1, y_scale);
 						renderer.arc(n.x, n.y / y_scale, n.width * Troncola.size_scale, 0, 2 * Math.PI);
 						renderer.fill();
 						renderer.stroke();
 						renderer.restore();
 						renderer.fillStyle = n.fontcolor;
-						renderer.fillText(n.name, n.x - (+Troncola.font_size) * n.name.length / 3, n.y - (+Troncola.font_size) - 5);
-						renderer.fillText(round_dec(n.perc * 100, 2) + "%", n.x - (+Troncola.font_size) * 1.7, n.y);
-						renderer.fillText("(" + n.count + ")", n.x - (+Troncola.font_size), n.y + (+Troncola.font_size) + 5);
+						renderer.fillText(n.name, n.x - f_scale * n.name.length / 3, n.y - f_scale - 5);
+						renderer.fillText(round_dec(n.perc * 100, 2) + "%", n.x - f_scale * 1.7, n.y);//here non so se è giusto!
+						renderer.fillText("(" + n.count + ")", n.x - f_scale, n.y + f_scale + 5);
 					}
 				});
 
