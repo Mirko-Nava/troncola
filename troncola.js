@@ -1,32 +1,52 @@
-!function() {
+Troncola = {};
+
+!function(Troncola) {
 
 // Variabili Private
 
-	var d3cola = undefined;
-	var node_hw = undefined;			// metà altezza massima dei nodi
-	var node_hh = undefined;			// metà larghezza massima dei nodi
-	var graph_x = undefined;			// x del grafico
-	var graph_y = undefined;			// y del grafico
-	var graph_width = undefined;		// larghezza del grafico
-	var graph_height = undefined;		// altezza del grafico
-	var hover_factor = 2;				// fattore di scaling dei nodi on hover
-	var dragging = undefined;			// id del nodo in fase dragging
-	var hovering = undefined;			// ide del nodo in fase hovering
-	var drag_x = 0;						// x del mouse al frame precedente
-	var drag_y = 0;						// y del mouse al frame precendete
-	var scale_x = 1;
-	var scale_y = 1;
+	var reference_system = {
+		"x" : 0,
+		"y" : 0,
+		"width" : 100,
+		"height" : 100
+	};
 
-	var font_size = 14;					// Dimensione font in px
+	var camera = {
+		"tx" : 0,
+		"ty" : 0,
+		"sc" : 1
+	}
+
+	var graph = undefined;				// Oggetto che rappresenta il grafo
+	var side_bar = undefined;			// Oggetto del dom
+	var renderer = undefined;			// Oggetto che permette la stampa su canvas
+	var dragging = undefined;			// Id del nodo in fase dragging
+	var type_list = {
+		"type": [],
+		"color": []
+	};					// Lista dei tipi di mutazioni genetiche
+
+	CanvasRenderingContext2D.prototype.clear = CanvasRenderingContext2D.prototype.clear || function(preserveTransform) {
+		if (preserveTransform) {
+			this.save();
+			this.setTransform(1, 0, 0, 1, 0, 0);
+		}
+
+		this.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+		if (preserveTransform) {
+			this.restore();
+		}   
+	};
 
 	var Troncola = {
 		
 // Variabili Pubbliche
 		
-		"size_scale":		0.33,		// Fattore di scala per i nodi
-		"stroke_width":		4,			// Spessore linee
-		"label_font_name":	"arial",	// Font dei label dei nodi
-		"desc_font_name":	"courier",	// Font delle descrizioni dei nodi
+		"size_scale":		0.5,		// Fattore di scala per i nodi
+		"stroke_width":		2,			// Spessore linee in px
+		"font_size":		8,			// Dimensione font in px
+		"label_font_name":	"georgia",	// Font dei label dei nodi
 
 // Funzioni
 
@@ -34,194 +54,281 @@
 			
 		// Eventi
 
-			function svg_wheel() {
-				//console.log("mouse wheel at svg");
-
-				var svg = d3.select(".graph"), delta = d3.event.deltaY / 100;
-				scale_x += delta;
-				scale_y += delta;
-				svg.attr("viewBox", "0 0 " + (graph_width * scale_x) + " " + (graph_height * scale_y));
-
-				//todo: mouvere di delta / 2 il grafo per simulare uno zoom con origine in centro allo schermo
+			function input() {
+				Troncola[this.name] = this.value;
+				draw();
 			}
 
-			function svg_drag_start() {
-				if (!dragging)
-				{
-					//console.log("start drag at svg");
-					if (d3.event.type === "mousedown") {
-						drag_x = d3.event.clientX;
-						drag_y = d3.event.clientY;
+			function wheel(event) {
+				var delta = event.deltaY > 0 ? 0.05 : - 0.05;
+				camera.sc += delta;
+				if (camera.sc < 0.2) camera.sc = 0.2;
+				else if (camera.sc > 2) camera.sc = 2;
+				draw();
+			}
+
+			function mousedown(event) {
+				if (!dragging) {
+					var mx = (event.clientX - camera.tx) / camera.sc,
+						my = (event.clientY - camera.ty) / camera.sc;
+
+					var nodes = graph.nodes,
+						length = nodes.length,
+						i = 0,
+						flag = false;
+
+					while (!flag && i < length) {
+						if (nodes[i].inside(mx, my, Troncola.size_scale)) {
+							flag = true;
+							dragging = {
+								"id": i,
+								"dragx": event.clientX,
+								"dragy": event.clientY
+							}
+						}
+						i++;
 					}
-					dragging = "SVG";
+
+					if (!flag) {
+						dragging = {
+							"id": "camera",
+							"dragx": event.clientX,
+							"dragy": event.clientY
+						}
+					} else {
+						node_selected(i - 1);
+					}
 				}
 			}
 
-			function svg_dragging() {
-				if (dragging === "SVG")
-				{
-					//console.log("dragging at svg");
+			function mousemove(event) {
+				if (dragging) {
+					var dx = event.clientX - dragging.dragx,
+						dy = event.clientY - dragging.dragy;
 
-					var svg = d3.select(".graph").select("g"), dx = 0, dy = 0;
+					dragging.dragx += dx;
+					dragging.dragy += dy;
 
-					if (d3.event.type === "mousemove") {
-						dx = d3.event.clientX - drag_x;
-						dy = d3.event.clientY - drag_y;
+					if (dragging.id === "camera") {
+						camera.tx += dx;
+						camera.ty += dy;
+					} else {
+						var node = graph.nodes[dragging.id];
+						node.x += dx / camera.sc;
+						node.y += dy / camera.sc;
+						node_selected(dragging.id);
 					}
 
-					graph_x -= dx * scale_x;
-					graph_y -= dy * scale_y;
-					drag_x += dx;
-					drag_y += dy;
-
-					svg.attr("transform", "translate(" + 
-						(-graph_x + node_hw * hover_factor) + ", " +
-						(-graph_y + node_hh * hover_factor) + ")"
-				 	  );
-
-					d3.event.preventDefault();
+					draw();
 				}
 			}
 
-			function svg_drag_stop() {
-				if (dragging === "SVG")
-				{
-					//console.log("stop drag at svg");
+			function mouseup(event) {
+				if (dragging) {
 					dragging = undefined;
 				}
 			}
 
-			function svg_out() {
-				if (dragging === "SVG") {
-					svg_drag_stop.call(this);
-				}
-			}
+			function mouseout(event) { dragging = undefined; }
 
-			function edge_selected(d) {
-				var title = "", desc = "", is_an_op = IsAnOperator(d.name);
+		// Selezione ogetti
 
-				title += "Edge tra " + d.source.name + " e " + d.target.name;
-				desc += "descrizione";
+			function node_selected(i) {
+				var node = graph.nodes[i],
+					title = "",
+					desc = "";
 
-				d3.select("#side_bar").select(".title").text(title);
-				d3.select("#side_bar").select(".desc").text(desc);
-			}
+				if (node.is_op) {
+					title += node.name;
 
-			function edge_click(d) {
-				edge_selected(d);
-			}
-
-			function node_selected(d) {
-				var title = "", desc = "", is_an_op = IsAnOperator(d.name);
-
-				if (is_an_op) {
-					title += d.name;
-
-					switch(d.name) {
+					switch(node.name) {
 						case "OR": {
-							desc += "La causa è uno o più dei geni entranti";
+							desc += "<p>La causa è uno o più dei geni entranti</p>";
 							break;
 						}
 						case "XOR": {
-							desc += "La causa è uno soltato tra i geni entranti";
+							desc += "<p>La causa è uno soltato tra i geni entranti</p>";
 							break;
 						}
 						case "AND": {
-							desc += "Le cause sono tutti i geni entranti";
+							desc += "<p>Le cause sono tutti i geni entranti</p>";
 							break;
 						}
 					}
-
-					d3.select("#side_bar").select(".title").text(title);
-					d3.select("#side_bar").select(".desc").text(desc);
 				} else {
-					title += "<a href=\""+ NCBIGeneQueryURL(d.name, "human") +"\" target=\"_blank\">" + d.name + "</a>";
-					desc += "tipo: " + d.type + "\n";
-
-					d3.select("#side_bar").select(".title").html(title);
-					d3.select("#side_bar").select(".desc").text(desc);	//todo: use text only if it is plain text
+					title += "<a href=\""+ NCBIGeneQueryURL(node.name, "human") +"\" target=\"_blank\">" + node.name + "</a>";
+					desc += "tipo: " + node.type + "\n";
 				}
 
-				d3.event.preventDefault();
+				update_sidebar(title, desc);
 			}
 
-			function node_drag_start(d) {
-				if (!dragging)
-				{
-					//console.log("start drag at " + d.id);
-					if (d3.event.type === "mousedown") {
-						drag_x = d3.event.clientX;
-						drag_y = d3.event.clientY;
+			function edge_selected(i) {
+				var edge = graph.edges[i],
+					title = "<p>Edge tra " + edge.target.name + " e " + edge.target.name + "</p>",
+					desc = "<p>descrizione</p>";
+
+				update_sidebar(title, desc);
+			}
+
+			function update_sidebar(title, desc) {
+				side_bar.getElementsByClassName("title")[0].innerHTML =  title;
+				side_bar.getElementsByClassName("desc")[0].innerHTML = desc;
+			}
+
+		// Stampa grafico
+
+			function draw() {
+
+				function draw_arrow(source, target) {
+					var y_scale = (target.height / target.width) * (Math.PI / 2),
+						tx = target.x,		//here perchè è spostato???
+						ty = target.y,
+						dx = tx - source.x,
+						dy = ty - source.y,
+						width = target.width * Troncola.size_scale,
+						height = target.height * Troncola.size_scale,
+						length = 30;
+						angle = Math.abs(Math.atan(dy / dx)),
+						delta = -.8;
+
+					if (dx < 0 && dy < 0) {
+						angle = Math.PI + angle;
+					} else if (dx < 0 && dy > 0) {
+						angle = Math.PI - angle;
+					} else if (dx > 0 && dy < 0) {
+						angle = Math.PI * 2 - angle;
 					}
 
-					d3.select(this).style("cursor", "grabbing");
-					node_selected(d);
-					d3.event.preventDefault();
-					dragging = d.id;
+					var	sin = Math.sin(angle),
+						cos = Math.cos(angle),
+						sinl = Math.sin(angle + delta),
+						cosl = Math.cos(angle + delta),
+						sinr = Math.sin(angle - delta),
+						cosr = Math.cos(angle - delta);
+
+					tx -= width * cos / y_scale;
+					ty -= height * sin * y_scale;
+
+					renderer.moveTo(source.x, source.y);
+					renderer.lineTo(tx, ty);
+					renderer.lineTo(tx + length * sinl, ty - length * cosl);
+					renderer.moveTo(tx, ty);
+					renderer.lineTo(tx - length * sinr, ty + length * cosr);
 				}
-			}
 
-			function node_dragging(d) {
-				if (dragging === d.id)
-				{
-					var node = d3.select(this), dx = 0, dy = 0;
+				renderer.save();
+				renderer.clear();
+				renderer.font = ((+Troncola.font_size) / camera.sc) + "px " + Troncola.label_font_name;
 
-					if (d3.event.type === "mousemove") {
-						dx = d3.event.clientX - drag_x;
-						dy = d3.event.clientY - drag_y;
+				!function(m) {
+					//console.log(m.sc+" 0 "+m.tx+"\n0 "+m.sc+" "+m.ty+"\n0 0 1");
+					renderer.transform(m.sc, 0, 0, m.sc, m.tx, m.ty);
+				} (camera);
+
+				graph.edges.forEach(function(e) {
+					var y_scale = e.target.height / e.target.width,
+						f_scale = (+Troncola.font_size) / camera.sc;
+					renderer.beginPath();
+					renderer.lineWidth = Troncola.stroke_width / camera.sc;
+					renderer.strokeStyle = e.color;
+					if (e.arrow === "True") {
+						draw_arrow(e.source, e.target);
+					} else {
+
+						renderer.moveTo(e.source.x, e.source.y);
+						renderer.lineTo(e.target.x, e.target.y);
 					}
+					if (e.line === "Dash") {
+						renderer.setLineDash([10, 10]);
+					} else {
+						renderer.setLineDash([]);
+					}
+					renderer.stroke();
+					//here
+					var mx = (e.source.x + e.target.x) * 0.5,
+						my = (e.source.y + e.target.y) * 0.5;
+					renderer.moveTo(mx, my);
+					renderer.fillText(round_dec(e["p-value1"] * 100, 2), mx, my - f_scale - 5);
+					renderer.fillText(round_dec(e["p-value2"] * 100, 2), mx, my);
+					renderer.fillText(round_dec(e["p-value3"] * 100, 2), mx, my + f_scale + 5);
+				});
 
-					d.x += dx * scale_x;
-					d.y += dy * scale_y;
-					drag_x += dx;
-					drag_y += dy;
+				graph.nodes.forEach(function(n) {
+					renderer.lineWidth = n.borderwidth * 2 / camera.sc;
+					renderer.strokeStyle = n.bordercolor; //here se border color non c'è allora faccio switch su type
 
-					//console.log("dragging at " + d.id);
-					node.attr("transform", "translate(" + d.x + ", " + d.y + ")");
-					
-					// update only nodes wich has source or target === this
-					d3.selectAll(".edge_group")[0].forEach(function(e) {
-						edge = d3.select(e).select(".edge");
-						if (edge.datum().source.id === node.datum().id) {
-							edge
-							  .attr({
-								"x1": d.x,
-								"y1": d.y
-							  });
+					if (n.is_op) {
+						var bwidth = n.width * Troncola.size_scale * 1.2;
+						var owidth = n.width * Troncola.size_scale * 0.4;
+
+						renderer.fillStyle = n.fillcolor;
+						renderer.beginPath();
+						renderer.moveTo(n.x + bwidth, n.y);
+						renderer.lineTo(n.x, n.y + bwidth);
+						renderer.lineTo(n.x - bwidth, n.y);
+						renderer.lineTo(n.x, n.y - bwidth);
+						renderer.lineTo(n.x + bwidth, n.y);
+						renderer.fill();
+						renderer.stroke();
+
+						// draw operator symbol
+						renderer.beginPath();
+
+						switch(n.name) {
+							case "XOR": {
+								renderer.moveTo(n.x - owidth, n.y - owidth);
+								renderer.lineTo(n.x + owidth, n.y + owidth);
+								renderer.moveTo(n.x - owidth, n.y + owidth);
+								renderer.lineTo(n.x + owidth, n.y - owidth);
+								break;
+							}
+							case "OR": {
+								renderer.arc(n.x, n.y, owidth * 1.15, 0, 2 * Math.PI);
+								break;
+							}
+							case "AND": {
+								renderer.moveTo(n.x, n.y - owidth * 1.15);
+								renderer.lineTo(n.x, n.y + owidth * 1.15);
+								renderer.moveTo(n.x - owidth * 1.15, n.y);
+								renderer.lineTo(n.x + owidth * 1.15, n.y);
+								break;
+							}
 						}
 
-						if (edge.datum().target.id === node.datum().id) {
-							edge
-							  .attr({
-								"x2": d.x,
-								"y2": d.y
-							  });
-						}
-					});
+						renderer.stroke();
+					} else {
+						var y_scale = n.height / n.width,
+							f_scale = (+Troncola.font_size) / camera.sc;
+						renderer.fillStyle = type_list.color[type_list.type.indexOf(n.type)];
+						renderer.beginPath();
+						renderer.save();
+						renderer.scale(1, y_scale);
+						renderer.arc(n.x, n.y / y_scale, n.width * Troncola.size_scale, 0, 2 * Math.PI);
+						renderer.fill();
+						renderer.stroke();
+						renderer.restore();
+						renderer.fillStyle = n.fontcolor;
+						renderer.fillText(n.name, n.x - f_scale * n.name.length / 3, n.y - f_scale - 5);
+						renderer.fillText(round_dec(n.perc * 100, 2) + "%", n.x - f_scale * 1.7, n.y);//here non so se è giusto!
+						renderer.fillText("(" + n.count + ")", n.x - f_scale, n.y + f_scale + 5);
+					}
+				});
 
-					d3.event.preventDefault();
-				}
+				renderer.restore();
 			}
 
-			function node_drag_stop(d) {
-				if (dragging === d.id)
-				{
-					//console.log("stop drag at " + d.id);
-					dragging = undefined;
-					d3.select(this).style("cursor", "grab");
-					d3.event.preventDefault();
-				}
-			}
-
-			function node_out(d) {
-				if (dragging === d.id) {
-					node_drag_stop.call(this, d);
-				}
-			}
-			
 		// Generazione grafico
 		
 			function make_graph(graph_tag, keys) {
+
+				function arrayObjectIndexOf(myArray, property, searchTerm) {	
+					for(var i = 0, len = myArray.length; i < len; i++) {
+						if (myArray[i][property] === searchTerm) return i;
+					}
+					return -1;
+				}
+
 				var graph = {};
 				
 				var graph_attr = [].slice.call(graph_tag.querySelectorAll("data"))	// estraggo attributi del grafo
@@ -239,7 +346,10 @@
 				
 				var nodes = [].map.call(graph_tag.querySelectorAll("node"), function(tag) { // per ogni nodo
 					var node = {
-						"id": tag.getAttribute("id")
+						"id": tag.getAttribute("id"),
+						"perc": Math.random() / 2,
+						"count": Math.floor(Math.random() * 100),
+						"type": Math.floor(Math.random() * 3)
 					};
 					
 					var node_attr = [].slice.call(tag.querySelectorAll("data"));	// estraggo attributi del nodo
@@ -251,14 +361,39 @@
 							value = +value;
 						node[key.name] = value;
 					});
-					
+
+					node.name = node.name.split("_Ex")[0].replace("_", "");
+
+					var name = node.name;
+					node.is_op = (name === "OR" || name === "XOR" || name === "AND");
+					node.inside = function(x, y, scale) {
+						function mag(x, y) {
+							return Math.sqrt(x * x + y * y);
+						}
+
+						return mag(x - this.x, y - this.y) < this.width *  scale;
+					};
+
+					//here
+					if (!node.is_op) {
+						node.width *= 1 + node.perc * 3;
+						node.height *= 1 + node.perc * 3;
+						if (type_list.type.indexOf(node.type) == -1) {
+							type_list.type.push(node.type);
+							type_list.color.push(node.fillcolor);
+						}
+					}
+
 					return node;
 				});
 				
 				var edges = [].map.call(graph_tag.querySelectorAll("edge"), function(tag) {	// per ogni arco
 					var edge = {
 						"source": arrayObjectIndexOf(nodes, "id", tag.getAttribute("source")),
-						"target": arrayObjectIndexOf(nodes, "id", tag.getAttribute("target"))
+						"target": arrayObjectIndexOf(nodes, "id", tag.getAttribute("target")),
+						"p-value1": Math.random() * 0.1, //here
+						"p-value2": Math.random() * 0.1,
+						"p-value3": Math.random() * 0.1
 					};
 					
 					var edge_attr = [].slice.call(tag.querySelectorAll("data"));	// estraggo attributi dell'arco
@@ -280,70 +415,17 @@
 			}
 			
 			function cola_position_graph(graph) {
-				d3cola = cola.d3adaptor()
+				var d3cola = cola.d3adaptor()
 				  .avoidOverlaps(true)
 				  .size([document.body.offsetWidth, document.body.offsetHeight]);
-
-				graph.nodes.forEach(function (n) {
-					n.width *= hover_factor * 0.66;
-					n.height *= hover_factor * 0.66;
-				})
 
 				d3cola
  				  .nodes(graph.nodes)
 				  .links(graph.edges)
-				  .flowLayout("y", node_hh * 2.5)
-				  .symmetricDiffLinkLengths(node_hw * 1.5)
+				  .flowLayout("y", 100)
+				  .symmetricDiffLinkLengths(100)
 				  .start(50, 15, 5)
 				  .stop();
-
-				graph.nodes.forEach(function (n) {
-					n.width /= hover_factor * 0.66;
-					n.height /= hover_factor * 0.66;
-				});
-			}
-			
-			function gen_markers(defs, graph) {
-				
-				var colors = [];	// array che contiene i possibili colori delle frecce
-				
-				//note: se utilizzo oggetti posso aggiungere anche frecce speciali (dashed, forme speciali, ...)
-				graph.edges.forEach(function(edge) {
-					if (edge.arrow === "True") {
-						var color = edge.color;
-						if (colors.indexOf(color) === -1) {
-							colors.push(color);
-						}
-					}
-				});
-
-				colors.forEach(function(color) {	// creo freccia per ogni colore
-					defs.append("marker")
-					  .attr({
-						"id": "arrow-" + color.substring(1),
-						"viewBox": "0 -7 10 14",
-						"refX": 10.5 + node_hh * 4 /  Troncola.stroke_width,
-						"refY": 0,
-						"markerWidth": 5,
-						"markerHeight": 7,
-						"orient": "auto",
-						"markerUnits": "strokeWidth"
-					  })
-					.append("path")
-					  .attr("d", "M0,-7 L10,0 L0,7")
-					  .style({
-						  "fill": "none",
-						  "stroke": color,
-						  "stroke-width": "2px"
-					  });
-				});
-			}
-
-			function arrayObjectIndexOf(myArray, property, searchTerm) {	
-				for(var i = 0, len = myArray.length; i < len; i++) {
-					if (myArray[i][property] === searchTerm) return i;
-				}
-				return -1;
 			}
 
 			function NCBIGeneQueryURL(gene, organism) {
@@ -351,7 +433,7 @@
 				
 				if (gene)
 				{
-					url += gene.split("_")[0] + "[SYM]";	// e.g.: gene "CBL_Ex_8_9" diventa "CBL", JARID_2 rinominato in JARID2
+					url += gene + "[SYM]";
 				}
 				
 				if (organism)
@@ -362,11 +444,38 @@
 				return url;
 			}
 
-			function IsAnOperator(name) {
-				return name === "OR" || name === "XOR" || name === "AND";
+		// Util
+
+			function max(array, extractor) {
+				var res = extractor(array[0]), temp;
+				for (var i = 1; i < array.length; i++) {
+					temp = extractor(array[i]);
+					if (temp > res) {
+						res = temp;
+					}
+				}
+				return res;
 			}
+
+			function min(array, extractor) {
+				var res = extractor(array[0]), temp;
+				for (var i = 1; i < array.length; i++) {
+					temp = extractor(array[i]);
+					if (temp < res) {
+						res = temp;
+					}
+				}
+				return res;
+			}
+
+			function round_dec(num, places) {
+				var n = Math.pow(10, places);
+				return Math.round(num * n) / n;
+			}
+
+		// Codice
 			
-		// Code
+			// Load XML and generate graph object
 			
 			d3.xml(filename, function(error, data) {
 				if (error || data === null) {
@@ -415,196 +524,77 @@
 					}
 				});
 
-				var graph = make_graph(data.querySelector("graph"), keys);	// genero il grafico con relativi attributi
-				
-				node_hw = d3.max(graph.nodes, function(d) { return d.width; }) * Troncola.size_scale * 0.5;
-				node_hh = d3.max(graph.nodes, function(d) { return d.height; }) * Troncola.size_scale * 0.5;
+				graph = make_graph(data.querySelector("graph"), keys);	// genero il grafico con relativi attributi
 
 				cola_position_graph(graph);		// posiziono i nodi con un certo criterio
 
-				graph_x = d3.min(graph.nodes, function(d) { return d.x - d.width * Troncola.size_scale; });
-				graph_y = d3.min(graph.nodes, function(d) { return d.y - d.height * Troncola.size_scale; });
-				graph_width = d3.max(graph.nodes, function(d) { return d.x + d.width * Troncola.size_scale; }) - graph_x;
-				graph_height = d3.max(graph.nodes, function(d) { return d.y + d.height * Troncola.size_scale; }) - graph_y;
+				var minx = min(graph.nodes, function(n) { return n.x - n.width / 2; }),
+					miny = min(graph.nodes, function(n) { return n.y - n.width / 2; }),
+					maxx = max(graph.nodes, function(n) { return n.x + n.width / 2; }) - minx,
+					maxy = max(graph.nodes, function(n) { return n.y + n.width / 2; }) - miny;
 
-				graph_width += 2 * node_hw * hover_factor;
-				graph_height += 2 * node_hh * hover_factor;
+				graph.nodes.forEach(function(n) {
+					n.x -= minx + maxx / 2;
+					n.y -= miny + maxy / 2;
+				});
 
-			// SVG & Defs
-			
-				var container =  d3.select("#graph_container");
+				reference_system.x = maxx / 2;
+				reference_system.y = maxy / 2;
+				reference_system.width = maxx;
+				reference_system.height = maxy;
 
-				container.on("mousedown", svg_drag_start);
-				container.on("mousemove", svg_dragging);
-				container.on("mouseup", svg_drag_stop);
-				container.on("mouseout", svg_out);
-				container.on("wheel", svg_wheel);
+			// Init canvas
 
-				var svg = container
-				.append("svg")
-				  .attr({
-					"class": "graph",
-					"width": graph_width,
-					"height": graph_height,
-					"viewBox": "0 0 " + graph_width + " " + graph_height,
-					"xmlns": "http://www.w3.org/2000/svg",
-					"xmlns:xlink": "http://www.w3.org/1999/xlink",
-					"version": "1.1"
-				  });
+				var canvas = document.getElementById("graph_container");
 
-				var defs = svg.append("defs");
-				gen_markers(defs, graph);		// genero le punte delle frecce
+				canvas.setAttribute("width", canvas.offsetWidth);
+				canvas.setAttribute("height", canvas.offsetHeight);
 
-				svg = svg 
-				.append("g")
-				  .attr("transform", "translate(" + 
-						(-graph_x + node_hw * hover_factor) + ", " +
-						(-graph_y + node_hh * hover_factor) + ")"
-				  );
-				
-			// Edges
-			
-				var edge_groups = svg.selectAll(".edge_group")
-				  .data(graph.edges)
-				.enter().append("g")
-				  .attr({
-					  "class": "edge_group"
-				  });
-				
-				var edges = edge_groups
-				.append("line")
-				  .attr({
-					"class": "edge",
-					"x1": function(d) { return d.source.x; },
-					"y1": function(d) { return d.source.y; },
-					"x2": function(d) { return d.target.x; },
-					"y2": function(d) { return d.target.y; },
-					"marker-end": function(d) {
-									if (d.arrow === "True") return "url(#arrow-" + d.color.substring(1) + ")"; 
-								}
-				  })
-				  .style({
-					"stroke": function(d) { return d.color; },
-					"stroke-width": function(d) {
-										if (d.width) return d.width + "px"; else return Troncola.stroke_width + "px";
-									},
-					"stroke-dasharray": function(d) { if (d.line === "Dash") return "5,5"; }
-				  });
+				renderer = canvas.getContext("2d");
+				side_bar = document.getElementById("side_bar");
 
-				  edge_groups.on("click", edge_click);
+				camera.sc = canvas.offsetWidth / reference_system.width;
+				camera.tx = - minx * 0.60;
+				camera.ty = - miny * 0.35;
 
-			// Nodes
-				
-				var node_groups = svg.selectAll(".node_group")
-				  .data(graph.nodes)
-				.enter().append("g")
-				  .attr({
-					  "class": "node_group",
-					  "transform": function(d) {
-					  	return "translate(" + d.x + ", " + d.y + ")"; }
-				  })
-				  .style("cursor", "grab");
-				
-				var nodes = node_groups
-				.append("ellipse")
-				.filter(function(d) { return !IsAnOperator(d.name); })
-				  .attr({
-					"class": "node",
-					"rx": function(d) { return d.width * Troncola.size_scale; },
-					"ry": function(d) { return d.height * Troncola.size_scale; },
-					"cx": "0",
-					"cy": "0"
-				  })
-				  .style({
-					"fill": function(d) { return d.fillcolor; },
-					"stroke": function(d) { return d.bordercolor; },
-					"stroke-width": function(d) { return d.borderwidth; }
-				  });
-				
-				/*var node_hrefs = node_groups
-				.append("a")
-				.filter(function(d) { return !IsAnOperator(d.name); })
-				  .attr({
-				  	"class": "label_link",
-				  	"xlink:title": function(d) { return "NCBI Gene " + d.label; },
-				  	"xlink:href": function(d) { return NCBIGeneQueryURL(d.label, "human"); },
-				  	"target": "_blank"
-				  });
-				*/
+				draw();
+				update_sidebar("<p>Nessun nodo selezionato</p>",
+							   "<p>Seleziona un nodo per avere maggiori informazioni</p>");
 
-				var node_labels = node_groups//.selectAll(".label_link")
-				.append("text")
-				  .text(function(d) { return d.label; })
-				  .attr({
-					  "class": "node_label",
-					  "x": "0",
-					  "y": font_size / 2
-				  })
-				  .style({
-					"fill": function(d) { return d.fontcolor; },
-					"text-anchor": "middle",
-					"font-size": font_size + "px",
-					"font-family": Troncola.label_font_name
-				  });
+				canvas.onmouseup = mouseup;
+				canvas.onmousedown = mousedown;
+				canvas.onmousemove = mousemove;
+				canvas.onmouseout = mouseout;
+				canvas.onwheel = wheel;
 
-				node_groups.on("mousedown", node_drag_start);
-				node_groups.on("mousemove", node_dragging);
-				node_groups.on("mouseup", node_drag_stop);
-				node_groups.on("mouseout", node_out);
+				document.getElementById("img_download").onclick = function () {
+					this.href = canvas.toDataURL();
+				};
 
-			// Operators
+				var panel = document.getElementById('panel'),
+					panel_inputs = panel.getElementsByTagName('input');
+					//input_color = undefined;
 
-				var operators = node_groups
-				.append("polygon")
-				.filter(function(d) { return IsAnOperator(d.name); })
-				  .attr({
-				  	"class": "operator",
-				  	"points": function(d) {
-				  				var l = d.width * Troncola.size_scale * 1.5; //todo: almeno è un po piu grosso
-				  				return "0," + -l + " " + l + ",0 0," + l + " " + -l + ",0"; // rombo di lato l
-				  			}
-				  })
-				  .style({
-				  	"fill": function(d) { return d.fillcolor; },
-					"stroke": function(d) { return d.bordercolor; },
-					"stroke-width": function(d) { return d.borderwidth; }
-				  });
+				for(var i = 0; i < panel_inputs.length; i++) {
+					panel_inputs[i].addEventListener('input', input);
+					panel_inputs[i].value = Troncola[panel_inputs[i].name];
+				}
 
-				var operator_symbols = node_groups
-				.append("path")
-				.filter(function(d) { return IsAnOperator(d.name); })
-				  .attr({
-				  	"class": "operator_symbol",
-				  	"d": function(d) {
-				  		var l = "" + (d.width * Troncola.size_scale - 10);
-
-				  		switch (d.name) {
-				  			case "OR": return "m "+-l+",0 a "+l+","+l+" 0 1,0 "+2*l+",0 a "+l+","+l+" 0 1,0 "+-2*l+",0";
-				  			case "XOR": return "m "+l+","+l+" l "+-2*l+","+-2*l+" m "+2*l+",0 l "+-2*l+","+2*l;
-				  			case "AND": return "m 0,"+-l+" l 0,"+2*l+" m "+-l+","+-l+" l "+2*l+",0";
-				  		}
-				  	}
-				  })
-				  .style({
-				  	"fill": "none",
-					"stroke": "#000000",
-					"stroke-width": "3"
-				  });
-
-			// Side Bar
-
-				var side_bar = d3.select("#side_bar");
-
-				side_bar
-				.append("p")
-				  .text("Nessun nodo selezionato")
-				  .attr("class", "title");
-
-				side_bar
-				.append("p")
-				  .text("Clicca su un nodo per avere maggiori informazioni")
-				  .attr("class", "desc");
-
+				panel.appendChild(document.createElement('br'));
+				for (var i = 0; i < type_list.type.length; i++) {
+					panel.appendChild(document.createTextNode(type_list.type[i]));
+					var input_color = document.createElement('input');
+					input_color.type = 'color';
+					input_color.name = type_list.type[i];
+					input_color.value = type_list.color[i].toUpperCase();
+					input_color.addEventListener('input', function () {
+						type_list.color[type_list.type.indexOf(this.name)] = this.value;
+						draw();
+					});
+					panel.appendChild(input_color);
+					panel.appendChild(document.createElement('br'));
+					panel.appendChild(document.createElement('br'));
+				}
 			});
 		}
 	};
@@ -616,4 +606,4 @@
 		if (typeof module === "object" && module.exports) module.exports = Troncola;
 	else
 		this.Troncola = Troncola;
-} ();
+} (Troncola);
