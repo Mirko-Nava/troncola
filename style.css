@@ -3,6 +3,9 @@ html, body {
   	padding: 0;
   	width: 100%;
   	height: auto;
+  	font-family: georgia;
+  	font-size: 12pt;
+  	color: black;
 }
 
 #graph_container {

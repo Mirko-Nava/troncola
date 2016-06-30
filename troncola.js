@@ -588,7 +588,7 @@ Troncola = {};
 
 				panel.appendChild(document.createElement('br'));
 				for (var i = 0; i < type_list.type.length; i++) {
-					panel.appendChild(document.createTextNode(type_list.type[i]));
+					panel.appendChild(document.createTextNode(type_list.type[i].replace(/_/g, ' ')));
 					var input_color = document.createElement('input');
 					input_color.type = 'color';
 					input_color.name = type_list.type[i];
