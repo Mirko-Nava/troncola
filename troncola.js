@@ -50,7 +50,7 @@ Troncola = {};
 
 // Funzioni
 
-		"draw_graph": function(filename) {
+		"init": function() {
 			
 		// Eventi
 
@@ -131,6 +131,153 @@ Troncola = {};
 
 			function mouseout(event) { dragging = undefined; }
 
+		// File caricato
+
+			function cancel_drag(e) {
+				e.stopPropagation();
+				e.preventDefault();
+				e.target.className = (e.type == "dragover" ? "hover" : "");
+			}
+
+			function file_dropped(e) {
+
+			// Load XML and generate graph object
+
+				cancel_drag(e);
+
+				var files = e.target.files || e.dataTransfer.files;
+
+				var filename = files[0].name;
+
+				document.getElementById("holder").style.visibility = "hidden";
+				document.getElementById("panel").style.visibility = "visible";
+				
+				d3.xml(filename, function(error, data) {
+					if (error || data === null || !data.querySelector("graphml")) {
+						alert("Errore durante il caricamento del documento \"" + filename + "\"");
+						return;
+					}
+					
+					var temp = [].map.call(data.querySelectorAll("key"), function(tag) {
+						return {
+							"id": tag.getAttribute("id"),
+							"for": tag.getAttribute("for"),
+							"name": tag.getAttribute("attr.name"),
+							"type": tag.getAttribute("attr.type")
+						};
+					});
+					
+					var keys = {		// keys conterrà le chiavi del documento xml, viene usato per generare gli attributi del grafico
+						"graph": {},
+						"node": {},
+						"edge": {}
+					};
+					
+					temp.forEach(function(key) {
+						switch (key.for) {
+							case "graph": {
+								keys.graph[key.id] = {
+									"name": key.name,
+									"type": key.type
+								}
+								break;
+							}
+							case "node": {
+								keys.node[key.id] = {
+									"name": key.name,
+									"type": key.type
+								}
+								break;
+							}
+							case "edge": {
+								keys.edge[key.id] = {
+									"name": key.name,
+									"type": key.type
+								}
+								break;
+							}
+						}
+					});
+
+					graph = make_graph(data.querySelector("graph"), keys);	// genero il grafico con relativi attributi
+
+					cola_position_graph(graph);		// posiziono i nodi con un certo criterio
+
+					var minx = min(graph.nodes, function(n) { return n.x - n.width / 2; }),
+						miny = min(graph.nodes, function(n) { return n.y - n.width / 2; }),
+						maxx = max(graph.nodes, function(n) { return n.x + n.width / 2; }) - minx,
+						maxy = max(graph.nodes, function(n) { return n.y + n.width / 2; }) - miny;
+
+					graph.nodes.forEach(function(n) {
+						n.x -= minx + maxx / 2;
+						n.y -= miny + maxy / 2;
+					});
+
+					reference_system.x = maxx / 2;
+					reference_system.y = maxy / 2;
+					reference_system.width = maxx;
+					reference_system.height = maxy;
+
+				// Init canvas
+
+					var canvas = document.getElementById("graph_container");
+
+					canvas.setAttribute("width", canvas.offsetWidth);
+					canvas.setAttribute("height", canvas.offsetHeight);
+
+					renderer = canvas.getContext("2d");
+
+					camera.sc = canvas.offsetWidth / reference_system.width;
+					camera.tx = - minx * 0.60;
+					camera.ty = - miny * 0.35;
+
+					side_bar = document.getElementById("side_bar");
+
+					draw();
+					update_sidebar("Nessun nodo selezionato",
+								   "Seleziona un nodo per avere maggiori informazioni");
+
+					canvas.onmouseup = mouseup;
+					canvas.onmousedown = mousedown;
+					canvas.onmousemove = mousemove;
+					canvas.onmouseout = mouseout;
+					canvas.onwheel = wheel;
+
+					document.getElementById("img_download").onclick = function () {
+						this.href = canvas.toDataURL();
+					};
+
+					var panel = document.getElementById('panel'),
+						panel_inputs = panel.getElementsByTagName('input');
+
+					for(var i = 0; i < panel_inputs.length; i++) {
+						panel_inputs[i].addEventListener('change', input);
+						panel_inputs[i].value = Troncola[panel_inputs[i].name];
+					}
+
+
+					var font_selection = document.getElementById('font_selection');
+					font_selection.onchange = input;
+					font_selection.value = Troncola[font_selection.name];
+
+					panel.appendChild(document.createElement('br'));
+					for (var i = 0; i < type_list.type.length; i++) {
+						panel.appendChild(document.createTextNode(type_list.type[i].replace(/_/g, ' ')));
+						var input_color = document.createElement('input');
+						input_color.type = 'color';
+						input_color.name = type_list.type[i];
+						input_color.value = type_list.color[i].toUpperCase();
+						input_color.addEventListener('input', function () {
+							type_list.color[type_list.type.indexOf(this.name)] = this.value;
+							draw();
+						});
+						panel.appendChild(input_color);
+						panel.appendChild(document.createElement('br'));
+						panel.appendChild(document.createElement('br'));
+					}
+				});
+			}
+
 		// Selezione ogetti
 
 			function node_selected(i) {
@@ -172,6 +319,7 @@ Troncola = {};
 			}
 
 			function update_sidebar(title, desc) {
+				var side_bar = document.getElementById("side_bar");
 				side_bar.getElementsByClassName("title")[0].innerHTML =  title;
 				side_bar.getElementsByClassName("desc")[0].innerHTML = desc;
 			}
@@ -476,132 +624,13 @@ Troncola = {};
 			}
 
 		// Codice
-			
-			// Load XML and generate graph object
-			
-			d3.xml(filename, function(error, data) {
-				if (error || data === null) {
-					alert("Errore durante il caricamento del file \"" + filename + "\"");
-					return;
-				}
-				
-				var temp = [].map.call(data.querySelectorAll("key"), function(tag) {
-					return {
-						"id": tag.getAttribute("id"),
-						"for": tag.getAttribute("for"),
-						"name": tag.getAttribute("attr.name"),
-						"type": tag.getAttribute("attr.type")
-					};
-				});
-				
-				var keys = {		// keys conterrà le chiavi del documento xml, viene usato per generare gli attributi del grafico
-					"graph": {},
-					"node": {},
-					"edge": {}
-				};
-				
-				temp.forEach(function(key) {
-					switch (key.for) {
-						case "graph": {
-							keys.graph[key.id] = {
-								"name": key.name,
-								"type": key.type
-							}
-							break;
-						}
-						case "node": {
-							keys.node[key.id] = {
-								"name": key.name,
-								"type": key.type
-							}
-							break;
-						}
-						case "edge": {
-							keys.edge[key.id] = {
-								"name": key.name,
-								"type": key.type
-							}
-							break;
-						}
-					}
-				});
 
-				graph = make_graph(data.querySelector("graph"), keys);	// genero il grafico con relativi attributi
+			update_sidebar("Nessun documento caricato","");
 
-				cola_position_graph(graph);		// posiziono i nodi con un certo criterio
-
-				var minx = min(graph.nodes, function(n) { return n.x - n.width / 2; }),
-					miny = min(graph.nodes, function(n) { return n.y - n.width / 2; }),
-					maxx = max(graph.nodes, function(n) { return n.x + n.width / 2; }) - minx,
-					maxy = max(graph.nodes, function(n) { return n.y + n.width / 2; }) - miny;
-
-				graph.nodes.forEach(function(n) {
-					n.x -= minx + maxx / 2;
-					n.y -= miny + maxy / 2;
-				});
-
-				reference_system.x = maxx / 2;
-				reference_system.y = maxy / 2;
-				reference_system.width = maxx;
-				reference_system.height = maxy;
-
-			// Init canvas
-
-				var canvas = document.getElementById("graph_container");
-
-				canvas.setAttribute("width", canvas.offsetWidth);
-				canvas.setAttribute("height", canvas.offsetHeight);
-
-				renderer = canvas.getContext("2d");
-				side_bar = document.getElementById("side_bar");
-
-				camera.sc = canvas.offsetWidth / reference_system.width;
-				camera.tx = - minx * 0.60;
-				camera.ty = - miny * 0.35;
-
-				draw();
-				update_sidebar("<p>Nessun nodo selezionato</p>",
-							   "<p>Seleziona un nodo per avere maggiori informazioni</p>");
-
-				canvas.onmouseup = mouseup;
-				canvas.onmousedown = mousedown;
-				canvas.onmousemove = mousemove;
-				canvas.onmouseout = mouseout;
-				canvas.onwheel = wheel;
-
-				document.getElementById("img_download").onclick = function () {
-					this.href = canvas.toDataURL();
-				};
-
-				var panel = document.getElementById('panel'),
-					panel_inputs = panel.getElementsByTagName('input');
-
-				for(var i = 0; i < panel_inputs.length; i++) {
-					panel_inputs[i].addEventListener('change', input);
-					panel_inputs[i].value = Troncola[panel_inputs[i].name];
-				}
-
-
-				var font_selection = document.getElementById('font_selection');
-				font_selection.onchange = input;
-				font_selection.value = Troncola[font_selection.name];
-
-				panel.appendChild(document.createElement('br'));
-				for (var i = 0; i < type_list.type.length; i++) {
-					panel.appendChild(document.createTextNode(type_list.type[i].replace(/_/g, ' ')));
-					var input_color = document.createElement('input');
-					input_color.type = 'color';
-					input_color.name = type_list.type[i];
-					input_color.value = type_list.color[i].toUpperCase();
-					input_color.addEventListener('input', function () {
-						type_list.color[type_list.type.indexOf(this.name)] = this.value;
-						draw();
-					});
-					panel.appendChild(input_color);
-					panel.appendChild(document.createElement('br'));
-					panel.appendChild(document.createElement('br'));
-				}
-			});
+			var holder = document.getElementById("holder");
+			holder.addEventListener("drop", file_dropped, false);
+			holder.addEventListener("dragover", cancel_drag, false);
+			holder.addEventListener("dragleave", cancel_drag, false);
 		}
 	};
 	

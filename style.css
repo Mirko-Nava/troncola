@@ -2,6 +2,8 @@ html, body {
   	margin: 0;
   	padding: 0;
   	width: 100%;
+  	min-width: 100%;
+  	max-width: 100%;
   	height: auto;
   	font-family: georgia;
   	font-size: 12pt;
@@ -17,10 +19,9 @@ html, body {
 
 #side_bar {
 	float: right;
-	width: 29%;
+	width: 30%;
 	height: 100vh;
 	background-color: #DDEEFF;
-	border-left: 10px solid #444444;
 }
 
 #side_bar .title {
@@ -40,6 +41,18 @@ html, body {
 	padding: 0;
 	font-size: 14px;
 	color: #6688CC;
+}
+
+#side_bar #holder {
+	width: 200px;
+	height: 100px;
+	border: 3px solid #AAA;
+	border-style: dashed;
+}
+
+#side_bar #holder:hover {
+	border: 3px solid #888;
+	border-style: dashed;	
 }
 
 #side_bar #panel input, #side_bar #panel select {
