@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<link rel="stylesheet" type="text/css" href="style.css">
+	<script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+	<script src="http://marvl.infotech.monash.edu/webcola/cola.v3.min.js"></script>
+	<script src="https://rawgit.com/cytoscape/cytoscape.js-cola/master/cytoscape-cola.js"></script>
+	<script src="cytoscape.js"></script>
+	<script src="troncolacy.js" charset="utf-8"></script>
+	<script type="text/javascript">
+		function init() {
+			Troncola.init();
+		}
+	</script>
+	<title>Tronco Visualization</title>
+</head>
+<body onload="init();">
+	<id id="graph_container"></id>
+	<div id="side_bar">
+		<div class="title"></div>
+		<div class="desc"></div>
+		<center><div id="holder">Trascina qui un documento per iniziare l'analisi</div></center>
+		<form id="panel" style="position:absolute;bottom:0px;visibility:hidden;">
+			<a id="img_download" download="image.png" href=""><button type="button">Salva immagine</button></a><br>
+			Scala<input type="text" name="size_scale"><br><br>
+			Spessore linea<input type="text" name="stroke_width" ><br><br>
+			Dimensione testo<input type="text" name="font_size"><br><br>
+			Font<select id="font_selection" name="label_font_name">
+				<option value="arial" style="font-family:arial;">Arial</option>
+				<option value="courier" style="font-family:courier;">Courier</option>
+				<option value="georgia" style="font-family:georgia;">Georgia</option>
+				<option value="times new roman" style="font-family:times new roman;">Times new roman</option>
+				<option value="palatino" style="font-family:palatino;">Palatino</option>
+				<option value="tahoma" style="font-family:tahoma;">Tahoma</option>
+				<option value="verdana" style="font-family:verdana;">Verdana</option>
+			</select><br><br>
+		</form><br>
+	</div>
+</body>
+</html>
